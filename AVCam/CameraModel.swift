@@ -90,6 +90,11 @@ final class CameraModel: Camera {
         }
     }
     
+    /// Performs a focus and expose operation at the specified screen point.
+    func focusAndExpose(at point: CGPoint) async {
+        await captureService.focusAndExpose(at: point)
+    }
+    
     /// Sets the `showCaptureFeedback` state to indicate that capture is underway.
     private func flashScreen() {
         shouldFlashScreen = true

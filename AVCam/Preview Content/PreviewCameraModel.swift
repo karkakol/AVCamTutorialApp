@@ -45,4 +45,8 @@ class PreviewCameraModel: Camera {
     func capturePhoto() {
         logger.debug("Photo capture isn't implemented in PreviewCamera.")
     }
+    
+    func focusAndExpose(at point: CGPoint) {
+        logger.debug("Focus and expose isn't implemented in PreviewCamera.")
+    }
 }

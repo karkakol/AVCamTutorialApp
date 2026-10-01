@@ -21,6 +21,10 @@ struct CameraView<CameraModel: Camera>: PlatformView {
             PreviewContainer(camera: camera) {
                 // A view that provides a preview of the captured content.
                 CameraPreview(source: camera.previewSource)
+                    // Focus and expose at the tapped point.
+                    .onTapGesture { location in
+                        Task { await camera.focusAndExpose(at: location) }
+                    }
                     /// The value of `shouldFlashScreen` changes briefly to `true` when capture
                     /// starts, and then immediately changes to `false`. Use this change to
                     /// flash the screen to provide visual feedback when capturing photos.

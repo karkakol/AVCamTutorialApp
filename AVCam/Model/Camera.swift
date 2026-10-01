@@ -32,6 +32,9 @@ protocol Camera: AnyObject, SendableMetatype {
     /// A Boolean value that indicates whether the camera is currently switching video devices.
     var isSwitchingVideoDevices: Bool { get }
     
+    /// Performs a one-time automatic focus and exposure operation.
+    func focusAndExpose(at point: CGPoint) async
+    
     /// Captures a photo and writes it to the user's photo library.
     func capturePhoto() async
     

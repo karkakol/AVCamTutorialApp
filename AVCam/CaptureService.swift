@@ -104,6 +104,8 @@ actor CaptureService {
             monitorSystemPreferredCamera()
             // Configure a rotation coordinator for the default video device.
             createRotationCoordinator(for: defaultCamera)
+            // Observe changes to the default camera's subject area.
+            observeSubjectAreaChanges(of: defaultCamera)
             // Update the service's advertised capabilities.
             updateCaptureCapabilities()
         } catch {
@@ -185,6 +187,8 @@ actor CaptureService {
             activeVideoInput = try addInput(for: device)
             // Configure a new rotation coordinator for the new device.
             createRotationCoordinator(for: device)
+            // Register for device observations.
+            observeSubjectAreaChanges(of: device)
             // Update the service's advertised capabilities.
             updateCaptureCapabilities()
         } catch {
@@ -263,6 +267,63 @@ actor CaptureService {
             fatalError("The app is misconfigured. The capture session should have a connection to a preview layer.")
         }
         return previewLayer
+    }
+    
+    // MARK: - Automatic focus and exposure
+    
+    /// Performs a one-time automatic focus and expose operation.
+    ///
+    /// The app calls this method as the result of a person tapping on the preview area.
+    func focusAndExpose(at point: CGPoint) {
+        // The point this call receives is in view-space coordinates. Convert this point to device coordinates.
+        let devicePoint = videoPreviewLayer.captureDevicePointConverted(fromLayerPoint: point)
+        do {
+            // Perform a user-initiated focus and expose.
+            try focusAndExpose(at: devicePoint, isUserInitiated: true)
+        } catch {
+            logger.debug("Unable to perform focus and exposure operation. \(error)")
+        }
+    }
+    
+    // Observe notifications of type `subjectAreaDidChangeNotification` for the specified device.
+    private func observeSubjectAreaChanges(of device: AVCaptureDevice) {
+        // Cancel the previous observation task.
+        subjectAreaChangeTask?.cancel()
+        subjectAreaChangeTask = Task {
+            // Signal true when this notification occurs.
+            for await _ in NotificationCenter.default.notifications(named: AVCaptureDevice.subjectAreaDidChangeNotification, object: device).compactMap({ _ in true }) {
+                // Perform a system-initiated focus and expose.
+                try? focusAndExpose(at: CGPoint(x: 0.5, y: 0.5), isUserInitiated: false)
+            }
+        }
+    }
+    private var subjectAreaChangeTask: Task<Void, Never>?
+    
+    private func focusAndExpose(at devicePoint: CGPoint, isUserInitiated: Bool) throws {
+        // Configure the current device.
+        let device = currentDevice
+        
+        // The following mode and point of interest configuration requires obtaining an exclusive lock on the device.
+        try device.lockForConfiguration()
+        
+        let focusMode = isUserInitiated ? AVCaptureDevice.FocusMode.autoFocus : .continuousAutoFocus
+        if device.isFocusPointOfInterestSupported && device.isFocusModeSupported(focusMode) {
+            device.focusPointOfInterest = devicePoint
+            device.focusMode = focusMode
+        }
+        
+        let exposureMode = isUserInitiated ? AVCaptureDevice.ExposureMode.autoExpose : .continuousAutoExposure
+        if device.isExposurePointOfInterestSupported && device.isExposureModeSupported(exposureMode) {
+            device.exposurePointOfInterest = devicePoint
+            device.exposureMode = exposureMode
+        }
+        // Enable subject-area change monitoring when performing a user-initiated automatic focus and exposure operation.
+        // If this method enables change monitoring, when the device's subject area changes, the app calls this method a
+        // second time and resets the device to continuous automatic focus and exposure.
+        device.isSubjectAreaChangeMonitoringEnabled = isUserInitiated
+        
+        // Release the lock.
+        device.unlockForConfiguration()
     }
     
     // MARK: - Photo capture
