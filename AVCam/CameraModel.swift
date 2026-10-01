@@ -22,6 +22,9 @@ final class CameraModel: Camera {
     /// The current status of the camera, such as unauthorized, running, or failed.
     private(set) var status = CameraStatus.unknown
     
+    /// A Boolean value that indicates whether the app is currently switching video devices.
+    private(set) var isSwitchingVideoDevices = false
+    
     /// An object that provides the connection between the capture session and the video preview layer.
     var previewSource: PreviewSource { captureService.previewSource }
     
@@ -48,5 +51,14 @@ final class CameraModel: Camera {
             logger.error("Failed to start capture service. \(error)")
             status = .failed
         }
+    }
+    
+    // MARK: - Changing devices
+    
+    /// Selects the next available video device for capture.
+    func switchVideoDevices() async {
+        isSwitchingVideoDevices = true
+        defer { isSwitchingVideoDevices = false }
+        await captureService.selectNextVideoDevice()
     }
 }

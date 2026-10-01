@@ -18,6 +18,19 @@ actor CaptureService {
     // The app's capture session.
     private let captureSession = AVCaptureSession()
     
+    // The video input for the currently selected device camera.
+    private var activeVideoInput: AVCaptureDeviceInput?
+    
+    // An object the service uses to retrieve capture devices.
+    private let deviceLookup = DeviceLookup()
+    
+    // An object that monitors the state of the system-preferred camera.
+    private let systemPreferredCamera = SystemPreferredCameraObserver()
+    
+    // An object that monitors video device rotations.
+    private var rotationCoordinator: AVCaptureDevice.RotationCoordinator!
+    private var rotationObservers = [AnyObject]()
+    
     // A serial dispatch queue to use for capture control actions.
     private let sessionQueue = DispatchSerialQueue(label: "com.karolkakol.AVCam.sessionQueue")
     
@@ -63,12 +76,15 @@ actor CaptureService {
     private func setUpSession() throws {
         do {
             // Retrieve the default camera.
-            guard let defaultCamera = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back) else {
-                throw CameraError.videoDeviceUnavailable
-            }
+            let defaultCamera = try deviceLookup.defaultCamera
 
             // Add an input for the default camera device.
-            try addInput(for: defaultCamera)
+            activeVideoInput = try addInput(for: defaultCamera)
+            
+            // Monitor the system-preferred camera state.
+            monitorSystemPreferredCamera()
+            // Configure a rotation coordinator for the default video device.
+            createRotationCoordinator(for: defaultCamera)
         } catch {
             throw CameraError.setupFailed
         }
@@ -84,5 +100,122 @@ actor CaptureService {
             throw CameraError.addInputFailed
         }
         return input
+    }
+    
+    // The device for the active video input.
+    private var currentDevice: AVCaptureDevice {
+        guard let device = activeVideoInput?.device else {
+            fatalError("No device found for current video input.")
+        }
+        return device
+    }
+    
+    // MARK: - Device selection
+    
+    /// Changes the capture device that provides video input.
+    ///
+    /// The app calls this method in response to the user tapping the button in the UI to change cameras.
+    /// The implementation switches between the front and back cameras and, in iPadOS,
+    /// connected external cameras.
+    func selectNextVideoDevice() {
+        // The array of available video capture devices.
+        let videoDevices = deviceLookup.cameras
+
+        // Find the index of the currently selected video device.
+        let selectedIndex = videoDevices.firstIndex(of: currentDevice) ?? 0
+        // Get the next index.
+        var nextIndex = selectedIndex + 1
+        // Wrap around if the next index is invalid.
+        if nextIndex == videoDevices.endIndex {
+            nextIndex = 0
+        }
+        
+        let nextDevice = videoDevices[nextIndex]
+        // Change the session's active capture device.
+        changeCaptureDevice(to: nextDevice)
+        
+        // The app only calls this method in response to the user requesting to switch cameras.
+        // Set the new selection as the user's preferred camera.
+        AVCaptureDevice.userPreferredCamera = nextDevice
+    }
+    
+    // Changes the device the service uses for video capture.
+    private func changeCaptureDevice(to device: AVCaptureDevice) {
+        // The service must have a valid video input prior to calling this method.
+        guard let currentInput = activeVideoInput else { fatalError() }
+        
+        // Bracket the following configuration in a begin/commit configuration pair.
+        captureSession.beginConfiguration()
+        defer { captureSession.commitConfiguration() }
+        
+        // Remove the existing video input before attempting to connect a new one.
+        captureSession.removeInput(currentInput)
+        do {
+            // Attempt to connect a new input and device to the capture session.
+            activeVideoInput = try addInput(for: device)
+            // Configure a new rotation coordinator for the new device.
+            createRotationCoordinator(for: device)
+        } catch {
+            // Reconnect the existing camera on failure.
+            captureSession.addInput(currentInput)
+        }
+    }
+    
+    /// Monitors changes to the system's preferred camera selection.
+    ///
+    /// iPadOS supports external cameras. When someone connects an external camera to their iPad,
+    /// they're signaling the intent to use the device. The system responds by updating the
+    /// system-preferred camera (SPC) selection to this new device. When this occurs, if the SPC
+    /// isn't the currently selected camera, switch to the new device.
+    private func monitorSystemPreferredCamera() {
+        Task {
+            // An object monitors changes to system-preferred camera (SPC) value.
+            for await camera in systemPreferredCamera.changes {
+                // If the SPC isn't the currently selected camera, attempt to change to that device.
+                if let camera, currentDevice != camera {
+                    logger.debug("Switching camera selection to the system-preferred camera.")
+                    changeCaptureDevice(to: camera)
+                }
+            }
+        }
+    }
+    
+    // MARK: - Rotation handling
+    
+    /// Create a new rotation coordinator for the specified device and observe its state to monitor rotation changes.
+    private func createRotationCoordinator(for device: AVCaptureDevice) {
+        // Create a new rotation coordinator for this device.
+        rotationCoordinator = AVCaptureDevice.RotationCoordinator(device: device, previewLayer: videoPreviewLayer)
+        
+        // Set initial rotation state on the preview connection.
+        updatePreviewRotation(rotationCoordinator.videoRotationAngleForHorizonLevelPreview)
+        
+        // Cancel previous observations.
+        rotationObservers.removeAll()
+        
+        // Add observers to monitor future changes.
+        rotationObservers.append(
+            rotationCoordinator.observe(\.videoRotationAngleForHorizonLevelPreview, options: .new) { [weak self] _, change in
+                guard let self, let angle = change.newValue else { return }
+                // Update the capture preview rotation.
+                Task { await self.updatePreviewRotation(angle) }
+            }
+        )
+    }
+    
+    private func updatePreviewRotation(_ angle: CGFloat) {
+        let connection = videoPreviewLayer.connection
+        Task { @MainActor in
+            // Set initial rotation angle on the video preview.
+            connection?.videoRotationAngle = angle
+        }
+    }
+    
+    private var videoPreviewLayer: AVCaptureVideoPreviewLayer {
+        // Access the capture session's connected preview layer.
+        guard let previewLayer = captureSession.connections.compactMap({ $0.videoPreviewLayer }).first else {
+            fatalError("The app is misconfigured. The capture session should have a connection to a preview layer.")
+        }
+        return previewLayer
     }
 }

@@ -22,4 +22,10 @@ protocol Camera: AnyObject, SendableMetatype {
     
     /// Starts the camera capture pipeline.
     func start() async
+    
+    /// Switches between video devices available on the host system.
+    func switchVideoDevices() async
+    
+    /// A Boolean value that indicates whether the camera is currently switching video devices.
+    var isSwitchingVideoDevices: Bool { get }
 }

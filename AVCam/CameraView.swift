@@ -14,10 +14,13 @@ struct CameraView<CameraModel: Camera>: View {
 
     var body: some View {
         ZStack {
-            // A view that provides a preview of the captured content.
-            CameraPreview(source: camera.previewSource)
-            // A view that presents a status message over the camera preview.
-            StatusOverlayView(status: camera.status)
+            // A container view that manages the placement of the preview.
+            PreviewContainer(camera: camera) {
+                // A view that provides a preview of the captured content.
+                CameraPreview(source: camera.previewSource)
+            }
+            // The main camera user interface.
+            CameraUI(camera: camera)
         }
     }
 }
