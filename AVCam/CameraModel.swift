@@ -219,5 +219,13 @@ final class CameraModel: Camera {
                 isHDRVideoSupported = capabilities.isHDRSupported
             }
         }
+        
+        Task {
+            // Await updates to the interruption state of the capture service.
+            for await isInterrupted in await captureService.$isInterrupted.values {
+                // Show a status message while a higher-priority event interrupts the camera.
+                status = isInterrupted ? .interrupted : .running
+            }
+        }
     }
 }

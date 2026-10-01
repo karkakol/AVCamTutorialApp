@@ -31,6 +31,8 @@ struct FeaturesToolbar<CameraModel: Camera>: PlatformView {
         }
         .buttonStyle(DefaultButtonStyle(size: isRegularSize ? .large : .small))
         .padding([.leading, .trailing])
+        // Hide them until the capture session runs, using a custom modifier.
+        .hidden(until: camera.status == .running)
     }
     
     //  A button to toggle the enabled state of Live Photo capture.

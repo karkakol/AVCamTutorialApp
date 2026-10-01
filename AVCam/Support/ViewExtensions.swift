@@ -56,6 +56,17 @@ struct DefaultButtonStyle: ButtonStyle {
     }
 }
 
+extension View {
+    /// Hides this view until the capture session is running.
+    ///
+    /// The app applies this to its controls so that it doesn't show UI until it's
+    /// functional, and so the preview is the first thing to appear at launch.
+    func hidden(until isRunning: Bool) -> some View {
+        opacity(isRunning ? 1 : 0)
+            .animation(.easeIn(duration: 0.3), value: isRunning)
+    }
+}
+
 extension Image {
     init(_ image: CGImage) {
         self.init(uiImage: UIImage(cgImage: image))

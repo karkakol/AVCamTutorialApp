@@ -19,6 +19,8 @@ actor CaptureService {
     @Published private(set) var captureReadiness = CaptureReadiness.sessionNotRunning
     /// A value that indicates the current capture capabilities of the service.
     @Published private(set) var captureCapabilities = CaptureCapabilities.unknown
+    /// A Boolean value that indicates whether a higher priority event, like receiving a phone call, interrupts the app.
+    @Published private(set) var isInterrupted = false
     /// A Boolean value that indicates whether the user enables HDR video capture.
     @Published var isHDRVideoEnabled = false
     
@@ -52,6 +54,9 @@ actor CaptureService {
     // An object that monitors video device rotations.
     private var rotationCoordinator: AVCaptureDevice.RotationCoordinator!
     private var rotationObservers = [AnyObject]()
+    
+    // A Boolean value that indicates whether the actor finished its required configuration.
+    private var isSetUp = false
     
     // A serial dispatch queue to use for capture control actions.
     private let sessionQueue = DispatchSerialQueue(label: "com.karolkakol.AVCam.sessionQueue")
@@ -96,8 +101,12 @@ actor CaptureService {
     // MARK: - Capture setup
     // Performs the initial capture session configuration.
     private func setUpSession() throws {
+        // Return early if already set up.
+        guard !isSetUp else { return }
+
         // Observe internal state and notifications.
         observeOutputServices()
+        observeNotifications()
         
         do {
             // Retrieve the default camera and microphone.
@@ -111,7 +120,13 @@ actor CaptureService {
             // Configure the session for photo capture.
             captureSession.sessionPreset = .photo
             
+            // Deferred start brings up the preview first, and prepares the capture outputs a moment
+            // later. An app that links the iOS 26 SDK gets this behavior by default; these
+            // assignments show the properties that control it.
+            captureSession.automaticallyRunsDeferredStart = true
+
             // Add the photo capture output as the default output type.
+            photoCapture.output.isDeferredStartEnabled = photoCapture.output.isDeferredStartSupported
             try addOutput(photoCapture.output)
             
             // Monitor the system-preferred camera state.
@@ -122,6 +137,8 @@ actor CaptureService {
             observeSubjectAreaChanges(of: defaultCamera)
             // Update the service's advertised capabilities.
             updateCaptureCapabilities()
+            
+            isSetUp = true
         } catch {
             throw CameraError.setupFailed
         }
@@ -435,5 +452,36 @@ actor CaptureService {
             .assign(to: &$captureActivity)
         photoCapture.$captureReadiness
             .assign(to: &$captureReadiness)
+    }
+    
+    /// Observe capture-related notifications.
+    private func observeNotifications() {
+        Task {
+            for await reason in NotificationCenter.default.notifications(named: AVCaptureSession.wasInterruptedNotification)
+                .compactMap({ $0.userInfo?[AVCaptureSessionInterruptionReasonKey] as AnyObject? })
+                .compactMap({ AVCaptureSession.InterruptionReason(rawValue: $0.integerValue) }) {
+                /// Set the `isInterrupted` state as appropriate.
+                isInterrupted = [.audioDeviceInUseByAnotherClient, .videoDeviceInUseByAnotherClient].contains(reason)
+            }
+        }
+        
+        Task {
+            // Await notification of the end of an interruption.
+            for await _ in NotificationCenter.default.notifications(named: AVCaptureSession.interruptionEndedNotification) {
+                isInterrupted = false
+            }
+        }
+        
+        Task {
+            for await error in NotificationCenter.default.notifications(named: AVCaptureSession.runtimeErrorNotification)
+                .compactMap({ $0.userInfo?[AVCaptureSessionErrorKey] as? AVError }) {
+                // If the system resets media services, the capture session stops running.
+                if error.code == .mediaServicesWereReset {
+                    if !captureSession.isRunning {
+                        captureSession.startRunning()
+                    }
+                }
+            }
+        }
     }
 }

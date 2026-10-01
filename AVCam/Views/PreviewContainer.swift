@@ -24,9 +24,11 @@ struct PreviewContainer<Content: View, CameraModel: Camera>: View {
     
     @State var camera: CameraModel
     
+    @Environment(\.scenePhase) private var scenePhase
 
     // State values for transition effects.
     @State private var blurRadius = CGFloat.zero
+    @State private var coverOpacity = 0.0
     
     // When running in photo capture mode on a compact device size, move the preview area
     // update by the offset amount so that it's better centered between the top and bottom bars.
@@ -59,8 +61,10 @@ struct PreviewContainer<Content: View, CameraModel: Camera>: View {
     var previewView: some View {
         content
             .blur(radius: blurRadius, opaque: true)
+            .overlay(Color.black.opacity(coverOpacity))
             .onChange(of: camera.isSwitchingModes, updateBlurRadius(_:_:))
             .onChange(of: camera.isSwitchingVideoDevices, updateBlurRadius(_:_:))
+            .onChange(of: scenePhase, updateCoverOpacity(_:_:))
     }
     
     func updateBlurRadius(_: Bool, _ isSwitching: Bool) {
@@ -69,6 +73,24 @@ struct PreviewContainer<Content: View, CameraModel: Camera>: View {
         }
     }
 
+    /// Covers the preview as the app enters the background, and reveals it on return.
+    ///
+    /// A preview that isn't covered on the way out reappears holding the frame it last
+    /// rendered. Covering it first means a person doesn't see that stale frame, and the
+    /// reveal fades the cover away as live frames resume.
+    func updateCoverOpacity(_: ScenePhase, _ phase: ScenePhase) {
+        switch phase {
+        case .background:
+            coverOpacity = 1
+        case .active:
+            withAnimation(.easeIn(duration: 0.3)) {
+                coverOpacity = 0
+            }
+        default:
+            break
+        }
+    }
+    
     var aspectRatio: AspectRatio {
         camera.captureMode == .photo ? photoAspectRatio : movieAspectRatio
     }

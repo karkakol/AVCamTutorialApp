@@ -38,6 +38,8 @@ struct CaptureModeView<CameraModel: Camera>: View {
             guard newIndex >= 0, newIndex < modes.count else { return }
             camera.captureMode = modes[newIndex]
         }
+        // Hide the capture mode view until the capture session runs, using a custom modifier.
+        .hidden(until: camera.status == .running)
     }
 }
 

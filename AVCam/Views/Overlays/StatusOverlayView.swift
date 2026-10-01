@@ -11,7 +11,7 @@ import SwiftUI
 struct StatusOverlayView: View {
 	
 	let status: CameraStatus
-    let handled: [CameraStatus] = [.unauthorized, .failed]
+    let handled: [CameraStatus] = [.unauthorized, .failed, .interrupted]
     
 	var body: some View {
 		if handled.contains(status) {
@@ -35,6 +35,8 @@ struct StatusOverlayView: View {
 			return .red
 		case .failed:
 			return .orange
+		case .interrupted:
+			return .yellow
 		default:
 			return .clear
 		}
@@ -44,12 +46,18 @@ struct StatusOverlayView: View {
 		switch status {
 		case .unauthorized:
 			return "You haven't authorized AVCam to use the camera or microphone. Change these settings in Settings -> Privacy & Security"
+		case .interrupted:
+			return "The camera was interrupted by higher-priority media processing."
 		case .failed:
 			return "The camera failed to start. Please try relaunching the app."
 		default:
 			return ""
 		}
 	}
+}
+
+#Preview("Interrupted") {
+    CameraView(camera: PreviewCameraModel(status: .interrupted))
 }
 
 #Preview("Failed") {

@@ -17,11 +17,17 @@ struct MainToolbar<CameraModel: Camera>: PlatformView {
     
     var body: some View {
         HStack {
-            ThumbnailButton(camera: camera)
+			ThumbnailButton(camera: camera)
+                // Hide it until the capture session runs, using a custom modifier.
+                .hidden(until: camera.status == .running)
             Spacer()
+            // The capture button stays visible. A capture that arrives before deferred start
+            // finishes is still honored, because the photo output enables responsive capture.
             CaptureButton(camera: camera)
             Spacer()
             SwitchCameraButton(camera: camera)
+                // Hide it until the capture session runs, using a custom modifier.
+                .hidden(until: camera.status == .running)
         }
         .foregroundColor(.white)
         .font(.system(size: 24))
