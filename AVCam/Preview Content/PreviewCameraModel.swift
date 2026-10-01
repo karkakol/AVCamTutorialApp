@@ -31,7 +31,6 @@ class PreviewCameraModel: Camera {
     
     private(set) var status = CameraStatus.unknown
     private(set) var captureActivity = CaptureActivity.idle
-    
     var captureMode = CaptureMode.photo {
         didSet {
             isSwitchingModes = true
@@ -43,6 +42,7 @@ class PreviewCameraModel: Camera {
         }
     }
     private(set) var isSwitchingModes = false
+    private(set) var isVideoDeviceSwitchable = true
     private(set) var isSwitchingVideoDevices = false
     private(set) var thumbnail: CGImage?
     
@@ -67,11 +67,25 @@ class PreviewCameraModel: Camera {
         logger.debug("Photo capture isn't implemented in PreviewCamera.")
     }
     
+    func toggleRecording() {
+        logger.debug("Moving capture isn't implemented in PreviewCamera.")
+    }
+    
     func focusAndExpose(at point: CGPoint) {
         logger.debug("Focus and expose isn't implemented in PreviewCamera.")
     }
     
-    func toggleRecording() {
-        logger.debug("Moving capture isn't implemented in PreviewCamera.")
+    private func capabilities(for mode: CaptureMode) -> CaptureCapabilities {
+        switch mode {
+        case .photo:
+            return CaptureCapabilities(isLivePhotoCaptureSupported: true)
+        case .video:
+            return CaptureCapabilities(isLivePhotoCaptureSupported: false,
+                                       isHDRSupported: true)
+        }
+    }
+    
+    func syncState() async {
+        logger.debug("Syncing state isn't implemented in PreviewCamera.")
     }
 }

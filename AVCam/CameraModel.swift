@@ -6,6 +6,7 @@ An object that provides the interface to the features of the camera.
 */
 
 import SwiftUI
+import Combine
 
 /// An object that provides the interface to the features of the camera.
 ///
@@ -58,6 +59,9 @@ final class CameraModel: Camera {
     /// An object that manages the app's capture functionality.
     private let captureService = CaptureService()
     
+    /// Persistent state shared between the app and capture extension.
+    private var cameraState = CameraState()
+    
     init() {
         //
     }
@@ -71,14 +75,27 @@ final class CameraModel: Camera {
             return
         }
         do {
+            // Synchronize the state of the model with the persistent state.
+            await syncState()
             // Start the capture service to start the flow of data.
-            try await captureService.start()
+            try await captureService.start(with: cameraState)
             observeState()
             status = .running
         } catch {
             logger.error("Failed to start capture service. \(error)")
             status = .failed
         }
+    }
+    
+    /// Synchronizes the persistent camera state.
+    ///
+    /// `CameraState` represents the persistent state, such as the capture mode, that the app and extension share.
+    func syncState() async {
+        cameraState = await CameraState.current
+        captureMode = cameraState.captureMode
+        qualityPrioritization = cameraState.qualityPrioritization
+        isLivePhotoEnabled = cameraState.isLivePhotoEnabled
+        isHDRVideoEnabled = cameraState.isVideoHDREnabled
     }
     
     // MARK: - Changing modes and devices
@@ -92,6 +109,8 @@ final class CameraModel: Camera {
                 defer { isSwitchingModes = false }
                 // Update the configuration of the capture service for the new mode.
                 try? await captureService.setCaptureMode(captureMode)
+                // Update the persistent state value.
+                cameraState.captureMode = captureMode
             }
         }
     }
@@ -120,10 +139,20 @@ final class CameraModel: Camera {
     }
     
     /// A Boolean value that indicates whether to capture Live Photos when capturing stills.
-    var isLivePhotoEnabled = true
+    var isLivePhotoEnabled = true {
+        didSet {
+            // Update the persistent state value.
+            cameraState.isLivePhotoEnabled = isLivePhotoEnabled
+        }
+    }
     
     /// A value that indicates how to balance the photo capture quality versus speed.
-    var qualityPrioritization = QualityPrioritization.quality
+    var qualityPrioritization = QualityPrioritization.quality {
+        didSet {
+            // Update the persistent state value.
+            cameraState.qualityPrioritization = qualityPrioritization
+        }
+    }
     
     /// A value that indicates which RAW format to capture along with the processed photo.
     var rawFormat = RAWFormat.off
@@ -145,13 +174,14 @@ final class CameraModel: Camera {
     }
     
     // MARK: - Video capture
-    
     /// A Boolean value that indicates whether the camera captures video in HDR format.
     var isHDRVideoEnabled = false {
         didSet {
             guard status == .running, captureMode == .video else { return }
             Task {
                 await captureService.setHDRVideoEnabled(isHDRVideoEnabled)
+                // Update the persistent state value.
+                cameraState.isVideoHDREnabled = isHDRVideoEnabled
             }
         }
     }
@@ -220,6 +250,7 @@ final class CameraModel: Camera {
             // Await updates to the capabilities that the capture service advertises.
             for await capabilities in await captureService.$captureCapabilities.values {
                 isHDRVideoSupported = capabilities.isHDRSupported
+                cameraState.isVideoHDRSupported = capabilities.isHDRSupported
             }
         }
         

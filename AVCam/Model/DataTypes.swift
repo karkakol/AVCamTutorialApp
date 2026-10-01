@@ -190,6 +190,7 @@ enum CameraError: Error {
     case addInputFailed
     case addOutputFailed
     case setupFailed
+    case deviceChangeFailed
 }
 
 protocol OutputService {

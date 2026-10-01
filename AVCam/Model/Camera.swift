@@ -28,7 +28,7 @@ protocol Camera: AnyObject, SendableMetatype {
     
     /// Starts the camera capture pipeline.
     func start() async
-    
+
     /// The capture mode, which can be photo or video.
     var captureMode: CaptureMode { get set }
     
@@ -79,4 +79,7 @@ protocol Camera: AnyObject, SendableMetatype {
     
     /// An error if the camera encountered a problem.
     var error: Error? { get }
+    
+    /// Synchronize the state of the camera with the persisted values.
+    func syncState() async
 }

@@ -98,7 +98,11 @@ actor CaptureService {
     }
     
     // MARK: - Capture session life cycle
-    func start() async throws {
+    func start(with state: CameraState) async throws {
+        // Set initial operating state.
+        captureMode = state.captureMode
+        isHDRVideoEnabled = state.isVideoHDREnabled
+        
         // Exit early if not authorized or the session is already running.
         guard await isAuthorized, !captureSession.isRunning else { return }
         // Configure the session and start it.
@@ -129,9 +133,9 @@ actor CaptureService {
             activeVideoInput = try addInput(for: defaultCamera)
             try addInput(for: defaultMic)
 
-            // Configure the session for photo capture.
-            captureSession.sessionPreset = .photo
-            
+            // Configure the session preset based on the current capture mode.
+            captureSession.sessionPreset = captureMode == .photo ? .photo : .high
+
             // Deferred start brings up the preview first, and prepares the capture outputs a moment
             // later. An app that links the iOS 26 SDK gets this behavior by default; these
             // assignments show the properties that control it.
@@ -140,6 +144,13 @@ actor CaptureService {
             // Add the photo capture output as the default output type.
             photoCapture.output.isDeferredStartEnabled = photoCapture.output.isDeferredStartSupported
             try addOutput(photoCapture.output)
+            // If the capture mode is set to `video`, add a movie capture output.
+            if captureMode == .video {
+                // Add the movie output as the default output type.
+                movieCapture.output.isDeferredStartEnabled = movieCapture.output.isDeferredStartSupported
+                try addOutput(movieCapture.output)
+                setHDRVideoEnabled(isHDRVideoEnabled)
+            }
             
             // Configure controls to use with the Camera Control.
             configureControls(for: defaultCamera)
@@ -485,7 +496,6 @@ actor CaptureService {
     func stopRecording() async throws -> Movie {
         try await movieCapture.stopRecording()
     }
-    
 
     /// Sets whether the app captures HDR video.
     func setHDRVideoEnabled(_ isEnabled: Bool) {

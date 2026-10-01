@@ -6,13 +6,142 @@
 	objectVersion = 110;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		AC1300000000000000000017 /* AVCamCaptureExtension.appex in Embed ExtensionKit Extensions */ = {isa = PBXBuildFile; fileRef = AC1300000000000000000003 /* AVCamCaptureExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		AC1300000000000000000018 /* AVCamControlCenterExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = AC1300000000000000000004 /* AVCamControlCenterExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		AC1300000000000000000011 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 5E81A4553089F2A300B7D214 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = AC1300000000000000000001;
+			remoteInfo = AVCamCaptureExtension;
+		};
+		AC1300000000000000000012 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 5E81A4553089F2A300B7D214 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = AC1300000000000000000002;
+			remoteInfo = AVCamControlCenterExtension;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		AC1300000000000000000015 /* Embed ExtensionKit Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(EXTENSIONS_FOLDER_PATH)";
+			dstSubfolderSpec = 16;
+			files = (
+				AC1300000000000000000017 /* AVCamCaptureExtension.appex in Embed ExtensionKit Extensions */,
+			);
+			name = "Embed ExtensionKit Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AC1300000000000000000016 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				AC1300000000000000000018 /* AVCamControlCenterExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
+		AC1300000000000000000003 /* AVCamCaptureExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.extensionkit-extension"; includeInIndex = 0; path = AVCamCaptureExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		AC1300000000000000000004 /* AVCamControlCenterExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = AVCamControlCenterExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		5E81A45D3089F2A300B7D214 /* AVCam.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AVCam.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		AC1300000000000000000009 /* Exceptions for "AVCam" folder in "AVCamCaptureExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				CameraModel.swift,
+				CameraView.swift,
+				Capture/DeviceLookup.swift,
+				Capture/MovieCapture.swift,
+				Capture/PhotoCapture.swift,
+				Capture/SPCObserver.swift,
+				CaptureService.swift,
+				Model/Camera.swift,
+				Model/CameraState.swift,
+				Model/DataTypes.swift,
+				Model/Intent/AVCamCaptureIntent.swift,
+				Model/MediaLibrary.swift,
+				"Preview Content/PreviewCameraModel.swift",
+				Support/CaptureExtensions.swift,
+				Support/FoundationExtensions.swift,
+				Support/ViewExtensions.swift,
+				Views/CameraPreview.swift,
+				Views/CameraUI.swift,
+				Views/Controls/CaptureModeView.swift,
+				Views/Overlays/LiveBadge.swift,
+				Views/Overlays/RecordingTimeView.swift,
+				Views/Overlays/StatusOverlayView.swift,
+				Views/PreviewContainer.swift,
+				Views/Toolbars/FeatureToolbar/FeatureToolbar.swift,
+				Views/Toolbars/MainToolbar/CaptureButton.swift,
+				Views/Toolbars/MainToolbar/MainToolbar.swift,
+				Views/Toolbars/MainToolbar/SwitchCameraButton.swift,
+				Views/Toolbars/MainToolbar/ThumbnailButton.swift,
+			);
+			target = AC1300000000000000000001 /* AVCamCaptureExtension */;
+		};
+		AC130000000000000000000A /* Exceptions for "AVCam" folder in "AVCamControlCenterExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Model/CameraState.swift,
+				Model/DataTypes.swift,
+				Model/Intent/AVCamCaptureIntent.swift,
+			);
+			target = AC1300000000000000000002 /* AVCamControlCenterExtension */;
+		};
+		AC1300000000000000000007 /* Exceptions for "AVCamCaptureExtension" folder in "AVCamCaptureExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = AC1300000000000000000001 /* AVCamCaptureExtension */;
+		};
+		AC1300000000000000000008 /* Exceptions for "AVCamControlCenterExtension" folder in "AVCamControlCenterExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = AC1300000000000000000002 /* AVCamControlCenterExtension */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		AC1300000000000000000005 /* AVCamCaptureExtension */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				AC1300000000000000000007 /* Exceptions for "AVCamCaptureExtension" folder in "AVCamCaptureExtension" target */,
+			);
+			path = AVCamCaptureExtension;
+			sourceTree = "<group>";
+		};
+		AC1300000000000000000006 /* AVCamControlCenterExtension */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				AC1300000000000000000008 /* Exceptions for "AVCamControlCenterExtension" folder in "AVCamControlCenterExtension" target */,
+			);
+			path = AVCamControlCenterExtension;
+			sourceTree = "<group>";
+		};
 		5E81A45F3089F2A300B7D214 /* AVCam */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				AC1300000000000000000009 /* Exceptions for "AVCam" folder in "AVCamCaptureExtension" target */,
+				AC130000000000000000000A /* Exceptions for "AVCam" folder in "AVCamControlCenterExtension" target */,
+			);
 			path = AVCam;
 			sourceTree = "<group>";
 		};
@@ -24,6 +153,16 @@
 			files = (
 			);
 		};
+		AC130000000000000000000C /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			files = (
+			);
+		};
+		AC130000000000000000000F /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			files = (
+			);
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -31,6 +170,8 @@
 			isa = PBXGroup;
 			children = (
 				5E81A45F3089F2A300B7D214 /* AVCam */,
+				AC1300000000000000000005 /* AVCamCaptureExtension */,
+				AC1300000000000000000006 /* AVCamControlCenterExtension */,
 				5E81A45E3089F2A300B7D214 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -39,6 +180,8 @@
 			isa = PBXGroup;
 			children = (
 				5E81A45D3089F2A300B7D214 /* AVCam.app */,
+				AC1300000000000000000003 /* AVCamCaptureExtension.appex */,
+				AC1300000000000000000004 /* AVCamControlCenterExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -53,8 +196,14 @@
 				5E81A4593089F2A300B7D214 /* Sources */,
 				5E81A45A3089F2A300B7D214 /* Frameworks */,
 				5E81A45B3089F2A300B7D214 /* Resources */,
+				AC1300000000000000000015 /* Embed ExtensionKit Extensions */,
+				AC1300000000000000000016 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
+			);
+			dependencies = (
+				AC1300000000000000000013 /* PBXTargetDependency */,
+				AC1300000000000000000014 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				5E81A45F3089F2A300B7D214 /* AVCam */,
@@ -63,6 +212,46 @@
 			productName = AVCam;
 			productReference = 5E81A45D3089F2A300B7D214 /* AVCam.app */;
 			productType = "com.apple.product-type.application";
+		};
+		AC1300000000000000000001 /* AVCamCaptureExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AC1300000000000000000019 /* Build configuration list for PBXNativeTarget "AVCamCaptureExtension" */;
+			buildPhases = (
+				AC130000000000000000000B /* Sources */,
+				AC130000000000000000000C /* Frameworks */,
+				AC130000000000000000000D /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				AC1300000000000000000005 /* AVCamCaptureExtension */,
+			);
+			name = AVCamCaptureExtension;
+			productName = AVCamCaptureExtension;
+			productReference = AC1300000000000000000003 /* AVCamCaptureExtension.appex */;
+			productType = "com.apple.product-type.extensionkit-extension";
+		};
+		AC1300000000000000000002 /* AVCamControlCenterExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AC130000000000000000001A /* Build configuration list for PBXNativeTarget "AVCamControlCenterExtension" */;
+			buildPhases = (
+				AC130000000000000000000E /* Sources */,
+				AC130000000000000000000F /* Frameworks */,
+				AC1300000000000000000010 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				AC1300000000000000000006 /* AVCamControlCenterExtension */,
+			);
+			name = AVCamControlCenterExtension;
+			productName = AVCamControlCenterExtension;
+			productReference = AC1300000000000000000004 /* AVCamControlCenterExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
 		};
 /* End PBXNativeTarget section */
 
@@ -75,6 +264,12 @@
 				LastUpgradeCheck = 2710;
 				TargetAttributes = {
 					5E81A45C3089F2A300B7D214 = {
+						CreatedOnToolsVersion = 27.1;
+					};
+					AC1300000000000000000001 = {
+						CreatedOnToolsVersion = 27.1;
+					};
+					AC1300000000000000000002 = {
 						CreatedOnToolsVersion = 27.1;
 					};
 				};
@@ -94,12 +289,24 @@
 			projectRoot = "";
 			targets = (
 				5E81A45C3089F2A300B7D214 /* AVCam */,
+				AC1300000000000000000001 /* AVCamCaptureExtension */,
+				AC1300000000000000000002 /* AVCamControlCenterExtension */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		5E81A45B3089F2A300B7D214 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			files = (
+			);
+		};
+		AC130000000000000000000D /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			files = (
+			);
+		};
+		AC1300000000000000000010 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			files = (
 			);
@@ -112,7 +319,30 @@
 			files = (
 			);
 		};
+		AC130000000000000000000B /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			files = (
+			);
+		};
+		AC130000000000000000000E /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			files = (
+			);
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		AC1300000000000000000013 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = AC1300000000000000000001 /* AVCamCaptureExtension */;
+			targetProxy = AC1300000000000000000011 /* PBXContainerItemProxy */;
+		};
+		AC1300000000000000000014 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = AC1300000000000000000002 /* AVCamControlCenterExtension */;
+			targetProxy = AC1300000000000000000012 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		5E81A4663089F2A500B7D214 /* Debug configuration for PBXProject "AVCam" */ = {
@@ -308,6 +538,132 @@
 			};
 			name = Release;
 		};
+		AC130000000000000000001B /* Debug configuration for PBXNativeTarget "AVCamCaptureExtension" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = AVCamCaptureExtension/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = AVCamCaptureExtension;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_NSCameraUsageDescription = "To capture photos and videos.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "AVCam uses your location to tag where photos and videos are taken.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "To record audio for Live Photos and videos.";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.AVCam.AVCamCaptureExtension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = NO;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = nonisolated;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		AC130000000000000000001C /* Release configuration for PBXNativeTarget "AVCamCaptureExtension" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = AVCamCaptureExtension/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = AVCamCaptureExtension;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_NSCameraUsageDescription = "To capture photos and videos.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "AVCam uses your location to tag where photos and videos are taken.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "To record audio for Live Photos and videos.";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.AVCam.AVCamCaptureExtension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = NO;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = nonisolated;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		AC130000000000000000001D /* Debug configuration for PBXNativeTarget "AVCamControlCenterExtension" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = AVCamControlCenterExtension/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = AVCamControlCenterExtension;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.AVCam.AVCamControlCenterExtension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = NO;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = nonisolated;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		AC130000000000000000001E /* Release configuration for PBXNativeTarget "AVCamControlCenterExtension" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = AVCamControlCenterExtension/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = AVCamControlCenterExtension;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.AVCam.AVCamControlCenterExtension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = NO;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = nonisolated;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -325,6 +681,24 @@
 				5E81A4693089F2A500B7D214 /* Debug configuration for PBXNativeTarget "AVCam" */,
 				5E81A46A3089F2A500B7D214 /* Release configuration for PBXNativeTarget "AVCam" */,
 			);
+			defaultConfigurationName = Release;
+		};
+		AC1300000000000000000019 /* Build configuration list for PBXNativeTarget "AVCamCaptureExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AC130000000000000000001B /* Debug configuration for PBXNativeTarget "AVCamCaptureExtension" */,
+				AC130000000000000000001C /* Release configuration for PBXNativeTarget "AVCamCaptureExtension" */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		AC130000000000000000001A /* Build configuration list for PBXNativeTarget "AVCamControlCenterExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AC130000000000000000001D /* Debug configuration for PBXNativeTarget "AVCamControlCenterExtension" */,
+				AC130000000000000000001E /* Release configuration for PBXNativeTarget "AVCamControlCenterExtension" */,
+			);
+			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
