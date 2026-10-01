@@ -7,16 +7,26 @@ An object that manages a capture session and its inputs and outputs.
 
 import Foundation
 @preconcurrency import AVFoundation
+import Combine
 
 /// An actor that manages the capture pipeline, which includes the capture session, device inputs, and capture outputs.
 /// The app defines it as an `actor` type to ensure that all camera operations happen off of the `@MainActor`.
 actor CaptureService {
+    
+    /// A value that indicates whether the capture service is idle or capturing a photo or movie.
+    @Published private(set) var captureActivity: CaptureActivity = .idle
     
     /// A type that connects a preview destination with the capture session.
     nonisolated let previewSource: PreviewSource
     
     // The app's capture session.
     private let captureSession = AVCaptureSession()
+    
+    // An object that manages the app's photo capture behavior.
+    private let photoCapture = PhotoCapture()
+    
+    // An internal collection of output services.
+    private var outputServices: [any OutputService] { [photoCapture] }
     
     // The video input for the currently selected device camera.
     private var activeVideoInput: AVCaptureDeviceInput?
@@ -74,17 +84,28 @@ actor CaptureService {
     // MARK: - Capture setup
     // Performs the initial capture session configuration.
     private func setUpSession() throws {
+        // Observe internal state and notifications.
+        observeOutputServices()
+        
         do {
             // Retrieve the default camera.
             let defaultCamera = try deviceLookup.defaultCamera
 
             // Add an input for the default camera device.
             activeVideoInput = try addInput(for: defaultCamera)
+
+            // Configure the session for photo capture.
+            captureSession.sessionPreset = .photo
+            
+            // Add the photo capture output as the default output type.
+            try addOutput(photoCapture.output)
             
             // Monitor the system-preferred camera state.
             monitorSystemPreferredCamera()
             // Configure a rotation coordinator for the default video device.
             createRotationCoordinator(for: defaultCamera)
+            // Update the service's advertised capabilities.
+            updateCaptureCapabilities()
         } catch {
             throw CameraError.setupFailed
         }
@@ -100,6 +121,15 @@ actor CaptureService {
             throw CameraError.addInputFailed
         }
         return input
+    }
+    
+    // Adds an output to the capture session to connect the specified capture device, if allowed.
+    private func addOutput(_ output: AVCaptureOutput) throws {
+        if captureSession.canAddOutput(output) {
+            captureSession.addOutput(output)
+        } else {
+            throw CameraError.addOutputFailed
+        }
     }
     
     // The device for the active video input.
@@ -155,6 +185,8 @@ actor CaptureService {
             activeVideoInput = try addInput(for: device)
             // Configure a new rotation coordinator for the new device.
             createRotationCoordinator(for: device)
+            // Update the service's advertised capabilities.
+            updateCaptureCapabilities()
         } catch {
             // Reconnect the existing camera on failure.
             captureSession.addInput(currentInput)
@@ -187,8 +219,9 @@ actor CaptureService {
         // Create a new rotation coordinator for this device.
         rotationCoordinator = AVCaptureDevice.RotationCoordinator(device: device, previewLayer: videoPreviewLayer)
         
-        // Set initial rotation state on the preview connection.
+        // Set initial rotation state on the preview and output connections.
         updatePreviewRotation(rotationCoordinator.videoRotationAngleForHorizonLevelPreview)
+        updateCaptureRotation(rotationCoordinator.videoRotationAngleForHorizonLevelCapture)
         
         // Cancel previous observations.
         rotationObservers.removeAll()
@@ -201,6 +234,14 @@ actor CaptureService {
                 Task { await self.updatePreviewRotation(angle) }
             }
         )
+        
+        rotationObservers.append(
+            rotationCoordinator.observe(\.videoRotationAngleForHorizonLevelCapture, options: .new) { [weak self] _, change in
+                guard let self, let angle = change.newValue else { return }
+                // Update the capture preview rotation.
+                Task { await self.updateCaptureRotation(angle) }
+            }
+        )
     }
     
     private func updatePreviewRotation(_ angle: CGFloat) {
@@ -211,11 +252,39 @@ actor CaptureService {
         }
     }
     
+    private func updateCaptureRotation(_ angle: CGFloat) {
+        // Update the orientation for all output services.
+        outputServices.forEach { $0.setVideoRotationAngle(angle) }
+    }
+    
     private var videoPreviewLayer: AVCaptureVideoPreviewLayer {
         // Access the capture session's connected preview layer.
         guard let previewLayer = captureSession.connections.compactMap({ $0.videoPreviewLayer }).first else {
             fatalError("The app is misconfigured. The capture session should have a connection to a preview layer.")
         }
         return previewLayer
+    }
+    
+    // MARK: - Photo capture
+    func capturePhoto() async throws -> Photo {
+        try await photoCapture.capturePhoto()
+    }
+    
+    // MARK: - Internal state management
+    /// Updates the state of the actor to ensure its advertised capabilities are accurate.
+    ///
+    /// When the capture session changes, such as changing modes or input devices, the service
+    /// calls this method to update its configuration and capabilities. The app uses this state to
+    /// determine which features to enable in the user interface.
+    private func updateCaptureCapabilities() {
+        // Update the output service configuration.
+        outputServices.forEach { $0.updateConfiguration(for: currentDevice) }
+    }
+    
+    /// Assign the `captureActivity` value of the photo capture service
+    /// to the actor's property.
+    private func observeOutputServices() {
+        photoCapture.$captureActivity
+            .assign(to: &$captureActivity)
     }
 }

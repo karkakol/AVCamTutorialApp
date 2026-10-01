@@ -18,6 +18,10 @@ struct CameraView<CameraModel: Camera>: View {
             PreviewContainer(camera: camera) {
                 // A view that provides a preview of the captured content.
                 CameraPreview(source: camera.previewSource)
+                    /// The value of `shouldFlashScreen` changes briefly to `true` when capture
+                    /// starts, and then immediately changes to `false`. Use this change to
+                    /// flash the screen to provide visual feedback when capturing photos.
+                    .opacity(camera.shouldFlashScreen ? 0 : 1)
             }
             // The main camera user interface.
             CameraUI(camera: camera)

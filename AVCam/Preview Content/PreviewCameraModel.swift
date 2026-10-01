@@ -11,6 +11,8 @@ import SwiftUI
 @Observable
 class PreviewCameraModel: Camera {
     
+    var shouldFlashScreen = false
+    
     struct PreviewSourceStub: PreviewSource {
         // Stubbed out for test purposes.
         func connect(to target: PreviewTarget) {}
@@ -19,8 +21,10 @@ class PreviewCameraModel: Camera {
     let previewSource: PreviewSource = PreviewSourceStub()
     
     private(set) var status = CameraStatus.unknown
+    private(set) var captureActivity = CaptureActivity.idle
     
     private(set) var isSwitchingVideoDevices = false
+    var error: Error?
     
     init(status: CameraStatus = .unknown) {
         self.status = status
@@ -34,5 +38,9 @@ class PreviewCameraModel: Camera {
     
     func switchVideoDevices() {
         logger.debug("Device switching isn't implemented in PreviewCamera.")
+    }
+    
+    func capturePhoto() {
+        logger.debug("Photo capture isn't implemented in PreviewCamera.")
     }
 }

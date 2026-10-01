@@ -14,6 +14,11 @@ struct MainToolbar<CameraModel: Camera>: View {
     
     var body: some View {
         HStack {
+            // A placeholder that keeps the capture button in the center.
+            Color.clear
+                .frame(width: largeButtonSize.width, height: largeButtonSize.height)
+            Spacer()
+            CaptureButton(camera: camera)
             Spacer()
             SwitchCameraButton(camera: camera)
         }

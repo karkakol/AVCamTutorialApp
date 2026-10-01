@@ -22,8 +22,17 @@ final class CameraModel: Camera {
     /// The current status of the camera, such as unauthorized, running, or failed.
     private(set) var status = CameraStatus.unknown
     
+    /// The current state of photo capture.
+    private(set) var captureActivity = CaptureActivity.idle
+    
     /// A Boolean value that indicates whether the app is currently switching video devices.
     private(set) var isSwitchingVideoDevices = false
+    
+    /// A Boolean value that indicates whether to show visual feedback when capture begins.
+    private(set) var shouldFlashScreen = false
+    
+    /// An error that indicates the details of an error during photo capture.
+    private(set) var error: Error?
     
     /// An object that provides the connection between the capture session and the video preview layer.
     var previewSource: PreviewSource { captureService.previewSource }
@@ -46,6 +55,7 @@ final class CameraModel: Camera {
         do {
             // Start the capture service to start the flow of data.
             try await captureService.start()
+            observeState()
             status = .running
         } catch {
             logger.error("Failed to start capture service. \(error)")
@@ -60,5 +70,43 @@ final class CameraModel: Camera {
         isSwitchingVideoDevices = true
         defer { isSwitchingVideoDevices = false }
         await captureService.selectNextVideoDevice()
+    }
+    
+    // MARK: - Photo capture
+    
+    /// Captures a photo.
+    func capturePhoto() async {
+        do {
+            let photo = try await captureService.capturePhoto()
+            logger.info("Captured a photo with \(photo.data.count) bytes of data.")
+        } catch {
+            self.error = error
+        }
+    }
+    
+    /// Sets the `showCaptureFeedback` state to indicate that capture is underway.
+    private func flashScreen() {
+        shouldFlashScreen = true
+        withAnimation(.linear(duration: 0.01)) {
+            shouldFlashScreen = false
+        }
+    }
+    
+    // MARK: - Internal state observations
+    
+    // Set up camera's state observations.
+    private func observeState() {
+        Task {
+            // Await new capture activity values from the capture service.
+            for await activity in await captureService.$captureActivity.values {
+                if activity.willCapture {
+                    // Flash the screen to indicate capture is starting.
+                    flashScreen()
+                } else {
+                    // Forward the activity to the UI.
+                    captureActivity = activity
+                }
+            }
+        }
     }
 }

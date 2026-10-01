@@ -17,6 +17,9 @@ protocol Camera: AnyObject, SendableMetatype {
     /// Provides the current status of the camera.
     var status: CameraStatus { get }
 
+    /// The camera's current activity state, which can be photo capture or idle.
+    var captureActivity: CaptureActivity { get }
+
     /// The source of video content for a camera preview.
     var previewSource: PreviewSource { get }
     
@@ -28,4 +31,13 @@ protocol Camera: AnyObject, SendableMetatype {
     
     /// A Boolean value that indicates whether the camera is currently switching video devices.
     var isSwitchingVideoDevices: Bool { get }
+    
+    /// Captures a photo.
+    func capturePhoto() async
+    
+    /// A Boolean value that indicates whether to show visual feedback when capture begins.
+    var shouldFlashScreen: Bool { get }
+    
+    /// An error if the camera encountered a problem.
+    var error: Error? { get }
 }
