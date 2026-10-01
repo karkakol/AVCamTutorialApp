@@ -27,10 +27,17 @@ enum CameraStatus {
 enum CaptureActivity {
     case idle
     /// A status that indicates the capture service is performing photo capture.
-    case photoCapture(willCapture: Bool = false)
+    case photoCapture(willCapture: Bool = false, isLivePhoto: Bool = false)
+    
+    var isLivePhoto: Bool {
+        if case .photoCapture(_, let isLivePhoto) = self {
+            return isLivePhoto
+        }
+        return false
+    }
     
     var willCapture: Bool {
-        if case .photoCapture(let willCapture) = self {
+        if case .photoCapture(let willCapture, _) = self {
             return willCapture
         }
         return false
@@ -40,6 +47,43 @@ enum CaptureActivity {
 /// A structure that represents a captured photo.
 struct Photo: Sendable {
     let data: Data
+    let isProxy: Bool
+    let livePhotoMovieURL: URL?
+}
+
+struct PhotoFeatures {
+    let isLivePhotoEnabled: Bool
+    let qualityPrioritization: QualityPrioritization
+}
+
+/// A structure that represents the capture capabilities of `CaptureService` in
+/// its current configuration.
+struct CaptureCapabilities {
+
+    let isLivePhotoCaptureSupported: Bool
+    
+    init(isLivePhotoCaptureSupported: Bool = false) {
+        self.isLivePhotoCaptureSupported = isLivePhotoCaptureSupported
+    }
+    
+    static let unknown = CaptureCapabilities()
+}
+
+enum QualityPrioritization: Int, Identifiable, CaseIterable, CustomStringConvertible, Codable {
+    var id: Self { self }
+    case speed = 1
+    case balanced
+    case quality
+    var description: String {
+        switch self {
+        case.speed:
+            return "Speed"
+        case .balanced:
+            return "Balanced"
+        case .quality:
+            return "Quality"
+        }
+    }
 }
 
 enum CameraError: Error {
@@ -53,6 +97,7 @@ protocol OutputService {
     associatedtype Output: AVCaptureOutput
     var output: Output { get }
     var captureActivity: CaptureActivity { get }
+    var capabilities: CaptureCapabilities { get }
     func updateConfiguration(for device: AVCaptureDevice)
     func setVideoRotationAngle(_ angle: CGFloat)
 }

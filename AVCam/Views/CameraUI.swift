@@ -36,6 +36,10 @@ struct CameraUI<CameraModel: Camera>: PlatformView {
         } action: { size in
             windowSize = size
         }
+        .overlay(alignment: .top) {
+            LiveBadge()
+                .opacity(camera.captureActivity.isLivePhoto ? 1.0 : 0.0)
+        }
         .overlay {
             StatusOverlayView(status: camera.status)
         }
@@ -45,6 +49,7 @@ struct CameraUI<CameraModel: Camera>: PlatformView {
     @ViewBuilder
     var compactUI: some View {
         VStack(spacing: 0) {
+            FeaturesToolbar(camera: camera)
             Spacer()
             MainToolbar(camera: camera)
                 .padding(.bottom, bottomPadding)
@@ -58,6 +63,9 @@ struct CameraUI<CameraModel: Camera>: PlatformView {
             Spacer()
             ZStack {
                 MainToolbar(camera: camera)
+                FeaturesToolbar(camera: camera)
+                    .frame(width: 250)
+                    .offset(x: 250) // The vertical offset from center.
             }
             .frame(width: 740)
             .background(.ultraThinMaterial.opacity(0.8))

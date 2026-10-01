@@ -11,6 +11,8 @@ import SwiftUI
 @Observable
 class PreviewCameraModel: Camera {
     
+    var isLivePhotoEnabled = true
+    var qualityPrioritization = QualityPrioritization.quality
     var shouldFlashScreen = false
     
     struct PreviewSourceStub: PreviewSource {

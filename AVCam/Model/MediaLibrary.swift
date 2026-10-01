@@ -57,8 +57,16 @@ actor MediaLibrary {
             
             // Save primary photo.
             let options = PHAssetResourceCreationOptions()
-            creationRequest.addResource(with: .photo, data: photo.data, options: options)
+            // Specify the appropriate resource type for the photo.
+            creationRequest.addResource(with: photo.isProxy ? .photoProxy : .photo, data: photo.data, options: options)
             creationRequest.location = location
+            
+            // Save Live Photo data.
+            if let url = photo.livePhotoMovieURL {
+                let livePhotoOptions = PHAssetResourceCreationOptions()
+                livePhotoOptions.shouldMoveFile = true
+                creationRequest.addResource(with: .pairedVideo, fileURL: url, options: livePhotoOptions)
+            }
             
             return creationRequest.placeholderForCreatedAsset
         }

@@ -15,6 +15,8 @@ actor CaptureService {
     
     /// A value that indicates whether the capture service is idle or capturing a photo or movie.
     @Published private(set) var captureActivity: CaptureActivity = .idle
+    /// A value that indicates the current capture capabilities of the service.
+    @Published private(set) var captureCapabilities = CaptureCapabilities.unknown
     
     /// A type that connects a preview destination with the capture session.
     nonisolated let previewSource: PreviewSource
@@ -327,8 +329,8 @@ actor CaptureService {
     }
     
     // MARK: - Photo capture
-    func capturePhoto() async throws -> Photo {
-        try await photoCapture.capturePhoto()
+    func capturePhoto(with features: PhotoFeatures) async throws -> Photo {
+        try await photoCapture.capturePhoto(with: features)
     }
     
     // MARK: - Internal state management
@@ -340,6 +342,8 @@ actor CaptureService {
     private func updateCaptureCapabilities() {
         // Update the output service configuration.
         outputServices.forEach { $0.updateConfiguration(for: currentDevice) }
+        // Set the capture service's capabilities.
+        captureCapabilities = photoCapture.capabilities
     }
     
     /// Assign the `captureActivity` value of the photo capture service

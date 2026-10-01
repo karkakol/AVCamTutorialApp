@@ -83,12 +83,19 @@ final class CameraModel: Camera {
     /// Captures a photo and writes it to the user's Photos library.
     func capturePhoto() async {
         do {
-            let photo = try await captureService.capturePhoto()
+            let photoFeatures = PhotoFeatures(isLivePhotoEnabled: isLivePhotoEnabled, qualityPrioritization: qualityPrioritization)
+            let photo = try await captureService.capturePhoto(with: photoFeatures)
             try await mediaLibrary.save(photo: photo)
         } catch {
             self.error = error
         }
     }
+    
+    /// A Boolean value that indicates whether to capture Live Photos when capturing stills.
+    var isLivePhotoEnabled = true
+    
+    /// A value that indicates how to balance the photo capture quality versus speed.
+    var qualityPrioritization = QualityPrioritization.quality
     
     /// Performs a focus and expose operation at the specified screen point.
     func focusAndExpose(at point: CGPoint) async {

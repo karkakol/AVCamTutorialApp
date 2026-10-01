@@ -24,15 +24,21 @@ final class PhotoCapture: OutputService {
     // An internal alias for the output.
     private var photoOutput: AVCapturePhotoOutput { output }
     
+    // The current capabilities available.
+    private(set) var capabilities: CaptureCapabilities = .unknown
+    
+    // A count of Live Photo captures currently in progress.
+    private var livePhotoCount = 0
+    
     // MARK: - Capture a photo.
     
     /// The app calls this method when the user taps the photo capture button.
-    func capturePhoto() async throws -> Photo {
+    func capturePhoto(with features: PhotoFeatures) async throws -> Photo {
         // Wrap the delegate-based capture API in a continuation to use it in an async context.
         try await withCheckedThrowingContinuation { continuation in
             
             // Create a settings object to configure the photo capture.
-            let photoSettings = createPhotoSettings()
+            let photoSettings = createPhotoSettings(with: features)
             
             let delegate = PhotoCaptureDelegate(continuation: continuation)
             monitorProgress(of: delegate)
@@ -44,9 +50,8 @@ final class PhotoCapture: OutputService {
     
     // MARK: - Create a photo settings object.
     
-    // Create a photo settings object to configure the photo capture.
-    private func createPhotoSettings() -> AVCapturePhotoSettings {
-        
+    // Create a photo settings object with the features a person enables in the UI.
+    private func createPhotoSettings(with features: PhotoFeatures) -> AVCapturePhotoSettings {
         // Create a new settings object to configure the photo capture.
         var photoSettings = AVCapturePhotoSettings()
         
@@ -66,6 +71,14 @@ final class PhotoCapture: OutputService {
         /// when the capture pipeline changes.
         photoSettings.maxPhotoDimensions = photoOutput.maxPhotoDimensions
         
+        // Set the movie URL if the photo output supports Live Photo capture.
+        photoSettings.livePhotoMovieFileURL = features.isLivePhotoEnabled ? URL.movieFileURL : nil
+        
+        // Set the priority of speed versus quality during this capture.
+        if let prioritization = AVCapturePhotoOutput.QualityPrioritization(rawValue: features.qualityPrioritization.rawValue) {
+            photoSettings.photoQualityPrioritization = prioritization
+        }
+        
         return photoSettings
     }
     
@@ -76,9 +89,23 @@ final class PhotoCapture: OutputService {
     private func monitorProgress(of delegate: PhotoCaptureDelegate, isolation: isolated (any Actor)? = #isolation) {
         Task {
             _ = isolation
+            var isLivePhoto = false
             // Asynchronously monitor the activity of the delegate while the system performs capture.
             for await activity in delegate.activityStream {
-                captureActivity = activity
+                var currentActivity = activity
+                /// More than one activity value for the delegate may report that `isLivePhoto` is `true`.
+                /// Only increment/decrement the count when the value changes from its previous state.
+                if activity.isLivePhoto != isLivePhoto {
+                    isLivePhoto = activity.isLivePhoto
+                    // Increment or decrement as appropriate.
+                    livePhotoCount += isLivePhoto ? 1 : -1
+                    if livePhotoCount > 1 {
+                        /// Set `isLivePhoto` to `true` when there are concurrent Live Photos in progress.
+                        /// This prevents the "Live" badge in the UI from flickering.
+                        currentActivity = .photoCapture(willCapture: activity.willCapture, isLivePhoto: true)
+                    }
+                }
+                captureActivity = currentActivity
             }
         }
     }
@@ -92,6 +119,16 @@ final class PhotoCapture: OutputService {
     func updateConfiguration(for device: AVCaptureDevice) {
         // Enable all supported features.
         photoOutput.maxPhotoDimensions = device.activeFormat.supportedMaxPhotoDimensions.last ?? .zero
+        photoOutput.isLivePhotoCaptureEnabled = photoOutput.isLivePhotoCaptureSupported
+        photoOutput.maxPhotoQualityPrioritization = .quality
+        photoOutput.isResponsiveCaptureEnabled = photoOutput.isResponsiveCaptureSupported
+        photoOutput.isFastCapturePrioritizationEnabled = photoOutput.isFastCapturePrioritizationSupported
+        photoOutput.isAutoDeferredPhotoDeliveryEnabled = photoOutput.isAutoDeferredPhotoDeliverySupported
+        updateCapabilities(for: device)
+    }
+    
+    private func updateCapabilities(for device: AVCaptureDevice) {
+        capabilities = CaptureCapabilities(isLivePhotoCaptureSupported: photoOutput.isLivePhotoCaptureSupported)
     }
 }
 
@@ -106,7 +143,11 @@ private class PhotoCaptureDelegate: NSObject, AVCapturePhotoCaptureDelegate {
     
     private let continuation: PhotoContinuation
     
+    private var isLivePhoto = false
+    private var isProxyPhoto = false
+    
     private var photoData: Data?
+    private var livePhotoMovieURL: URL?
     
     /// A stream of capture activity values that indicate the current state of progress.
     let activityStream: AsyncStream<CaptureActivity>
@@ -122,13 +163,36 @@ private class PhotoCaptureDelegate: NSObject, AVCapturePhotoCaptureDelegate {
     }
     
     func photoOutput(_ output: AVCapturePhotoOutput, willBeginCaptureFor resolvedSettings: AVCaptureResolvedPhotoSettings) {
-        // Signal that the photo output accepts the capture request.
-        activityContinuation.yield(.photoCapture())
+        // Determine if this is a live capture.
+        isLivePhoto = resolvedSettings.livePhotoMovieDimensions != .zero
+        activityContinuation.yield(.photoCapture(isLivePhoto: isLivePhoto))
     }
     
     func photoOutput(_ output: AVCapturePhotoOutput, willCapturePhotoFor resolvedSettings: AVCaptureResolvedPhotoSettings) {
         // Signal that a capture is beginning.
-        activityContinuation.yield(.photoCapture(willCapture: true))
+        activityContinuation.yield(.photoCapture(willCapture: true, isLivePhoto: isLivePhoto))
+    }
+    
+    func photoOutput(_ output: AVCapturePhotoOutput, didFinishRecordingLivePhotoMovieForEventualFileAt outputFileURL: URL, resolvedSettings: AVCaptureResolvedPhotoSettings) {
+        // Indicates that Live Photo capture is over.
+        activityContinuation.yield(.photoCapture(isLivePhoto: false))
+    }
+    
+    func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingLivePhotoToMovieFileAt outputFileURL: URL, duration: CMTime, photoDisplayTime: CMTime, resolvedSettings: AVCaptureResolvedPhotoSettings, error: Error?) {
+        if let error {
+            logger.debug("Error processing Live Photo companion movie: \(String(describing: error))")
+        }
+        livePhotoMovieURL = outputFileURL
+    }
+    
+    func photoOutput(_ output: AVCapturePhotoOutput, didFinishCapturingDeferredPhotoProxy deferredPhotoProxy: AVCaptureDeferredPhotoProxy?, error: Error?) {
+        if let error = error {
+            logger.debug("Error capturing deferred photo: \(error)")
+            return
+        }
+        // Capture the data for this photo.
+        photoData = deferredPhotoProxy?.fileDataRepresentation()
+        isProxyPhoto = true
     }
     
     func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {
@@ -159,7 +223,7 @@ private class PhotoCaptureDelegate: NSObject, AVCapturePhotoCaptureDelegate {
         }
         
         /// Create a photo object to save to the `MediaLibrary`.
-        let photo = Photo(data: photoData)
+        let photo = Photo(data: photoData, isProxy: isProxyPhoto, livePhotoMovieURL: livePhotoMovieURL)
         // Resume the continuation by returning the captured photo.
         continuation.resume(returning: photo)
     }
