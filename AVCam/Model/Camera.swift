@@ -35,6 +35,9 @@ protocol Camera: AnyObject, SendableMetatype {
     /// A Boolean value that indicates whether the camera is currently switching capture modes.
     var isSwitchingModes: Bool { get }
     
+    /// A Boolean value that indicates whether the camera prefers showing a minimized set of UI controls.
+    var prefersMinimizedUI: Bool { get }
+
     /// Switches between video devices available on the host system.
     func switchVideoDevices() async
     

@@ -31,6 +31,8 @@ struct FeaturesToolbar<CameraModel: Camera>: PlatformView {
         }
         .buttonStyle(DefaultButtonStyle(size: isRegularSize ? .large : .small))
         .padding([.leading, .trailing])
+        // Hide the toolbar items when a person interacts with capture controls.
+        .opacity(camera.prefersMinimizedUI ? 0 : 1)
         // Hide them until the capture session runs, using a custom modifier.
         .hidden(until: camera.status == .running)
     }

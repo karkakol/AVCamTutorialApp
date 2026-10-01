@@ -12,6 +12,7 @@ import SwiftUI
 class PreviewCameraModel: Camera {
     
     var isLivePhotoEnabled = true
+    var prefersMinimizedUI = false
     var qualityPrioritization = QualityPrioritization.quality
     var rawFormat = RAWFormat.off
     // Report both RAW formats as supported so the previews show the RAW control.
