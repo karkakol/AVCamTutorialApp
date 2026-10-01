@@ -1,0 +1,9 @@
+# Finder
+.DS_Store
+
+# Xcode - User files
+xcuserdata/
+
+# Xcode - Build products
+DerivedData/
+build/
