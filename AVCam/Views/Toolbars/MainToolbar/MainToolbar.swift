@@ -8,7 +8,10 @@ A view that displays controls to capture, switch cameras, and view the last capt
 import SwiftUI
 
 /// A view that displays controls to capture, switch cameras, and view the last captured media item.
-struct MainToolbar<CameraModel: Camera>: View {
+struct MainToolbar<CameraModel: Camera>: PlatformView {
+
+    @Environment(\.verticalSizeClass) var verticalSizeClass
+    @Environment(\.horizontalSizeClass) var horizontalSizeClass
 
     @State var camera: CameraModel
     
@@ -22,10 +25,11 @@ struct MainToolbar<CameraModel: Camera>: View {
         }
         .foregroundColor(.white)
         .font(.system(size: 24))
-        .frame(height: height)
+        .frame(width: width, height: height)
         .padding([.leading, .trailing])
     }
     
+    var width: CGFloat? { isRegularSize ? 250 : nil }
     var height: CGFloat? { 80 }
 }
 

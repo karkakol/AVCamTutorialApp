@@ -10,6 +10,19 @@ import UIKit
 
 let largeButtonSize = CGSize(width: 64, height: 64)
 
+@MainActor
+protocol PlatformView: View {
+    var verticalSizeClass: UserInterfaceSizeClass? { get }
+    var horizontalSizeClass: UserInterfaceSizeClass? { get }
+    var isRegularSize: Bool { get }
+    var isCompactSize: Bool { get }
+}
+
+extension PlatformView {
+    var isRegularSize: Bool { horizontalSizeClass == .regular && verticalSizeClass == .regular }
+    var isCompactSize: Bool { horizontalSizeClass == .compact || verticalSizeClass == .compact }
+}
+
 struct DefaultButtonStyle: ButtonStyle {
     
     @Environment(\.isEnabled) private var isEnabled: Bool

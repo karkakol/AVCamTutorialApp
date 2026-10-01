@@ -8,7 +8,10 @@ The main user interface for the sample app.
 import SwiftUI
 
 @MainActor
-struct CameraView<CameraModel: Camera>: View {
+struct CameraView<CameraModel: Camera>: PlatformView {
+
+    @Environment(\.verticalSizeClass) var verticalSizeClass
+    @Environment(\.horizontalSizeClass) var horizontalSizeClass
 
     @State var camera: CameraModel
 
