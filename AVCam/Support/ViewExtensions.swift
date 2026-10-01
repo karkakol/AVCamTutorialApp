@@ -42,3 +42,9 @@ struct DefaultButtonStyle: ButtonStyle {
         horizontalSizeClass == .regular && verticalSizeClass == .regular
     }
 }
+
+extension Image {
+    init(_ image: CGImage) {
+        self.init(uiImage: UIImage(cgImage: image))
+    }
+}

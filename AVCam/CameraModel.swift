@@ -31,11 +31,17 @@ final class CameraModel: Camera {
     /// A Boolean value that indicates whether to show visual feedback when capture begins.
     private(set) var shouldFlashScreen = false
     
+    /// A thumbnail for the last captured photo.
+    private(set) var thumbnail: CGImage?
+    
     /// An error that indicates the details of an error during photo capture.
     private(set) var error: Error?
     
     /// An object that provides the connection between the capture session and the video preview layer.
     var previewSource: PreviewSource { captureService.previewSource }
+    
+    /// An object that saves captured media to a person's Photos library.
+    private let mediaLibrary = MediaLibrary()
     
     /// An object that manages the app's capture functionality.
     private let captureService = CaptureService()
@@ -74,11 +80,11 @@ final class CameraModel: Camera {
     
     // MARK: - Photo capture
     
-    /// Captures a photo.
+    /// Captures a photo and writes it to the user's Photos library.
     func capturePhoto() async {
         do {
             let photo = try await captureService.capturePhoto()
-            logger.info("Captured a photo with \(photo.data.count) bytes of data.")
+            try await mediaLibrary.save(photo: photo)
         } catch {
             self.error = error
         }
@@ -96,6 +102,13 @@ final class CameraModel: Camera {
     
     // Set up camera's state observations.
     private func observeState() {
+        Task {
+            // Await new thumbnails that the media library generates when saving a file.
+            for await thumbnail in mediaLibrary.thumbnails.compactMap({ $0 }) {
+                self.thumbnail = thumbnail
+            }
+        }
+        
         Task {
             // Await new capture activity values from the capture service.
             for await activity in await captureService.$captureActivity.values {

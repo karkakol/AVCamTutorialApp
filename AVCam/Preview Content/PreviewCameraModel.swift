@@ -24,6 +24,8 @@ class PreviewCameraModel: Camera {
     private(set) var captureActivity = CaptureActivity.idle
     
     private(set) var isSwitchingVideoDevices = false
+    private(set) var thumbnail: CGImage?
+    
     var error: Error?
     
     init(status: CameraStatus = .unknown) {

@@ -32,11 +32,14 @@ protocol Camera: AnyObject, SendableMetatype {
     /// A Boolean value that indicates whether the camera is currently switching video devices.
     var isSwitchingVideoDevices: Bool { get }
     
-    /// Captures a photo.
+    /// Captures a photo and writes it to the user's photo library.
     func capturePhoto() async
     
     /// A Boolean value that indicates whether to show visual feedback when capture begins.
     var shouldFlashScreen: Bool { get }
+    
+    /// A thumbnail image for the most recent photo capture.
+    var thumbnail: CGImage? { get }
     
     /// An error if the camera encountered a problem.
     var error: Error? { get }
