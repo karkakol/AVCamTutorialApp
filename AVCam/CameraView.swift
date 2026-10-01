@@ -6,6 +6,8 @@ The main user interface for the sample app.
 */
 
 import SwiftUI
+import AVFoundation
+import AVKit
 
 @MainActor
 struct CameraView<CameraModel: Camera>: PlatformView {
@@ -14,6 +16,9 @@ struct CameraView<CameraModel: Camera>: PlatformView {
     @Environment(\.horizontalSizeClass) var horizontalSizeClass
 
     @State var camera: CameraModel
+
+    // The direction a person swipes on the camera preview or mode selector.
+    @State var swipeDirection = SwipeDirection.left
 
     var body: some View {
         ZStack {
@@ -25,14 +30,24 @@ struct CameraView<CameraModel: Camera>: PlatformView {
                     .onTapGesture { location in
                         Task { await camera.focusAndExpose(at: location) }
                     }
+                    // Switch between capture modes by swiping left and right.
+                    .simultaneousGesture(swipeGesture)
                     /// The value of `shouldFlashScreen` changes briefly to `true` when capture
                     /// starts, and then immediately changes to `false`. Use this change to
                     /// flash the screen to provide visual feedback when capturing photos.
                     .opacity(camera.shouldFlashScreen ? 0 : 1)
             }
             // The main camera user interface.
-            CameraUI(camera: camera)
+            CameraUI(camera: camera, swipeDirection: $swipeDirection)
         }
+    }
+
+    var swipeGesture: some Gesture {
+        DragGesture(minimumDistance: 50)
+            .onEnded {
+                // Capture swipe direction.
+                swipeDirection = $0.translation.width < 0 ? .left : .right
+            }
     }
 }
 
@@ -40,4 +55,11 @@ struct CameraView<CameraModel: Camera>: PlatformView {
     PreviewBackground {
         CameraView(camera: PreviewCameraModel())
     }
+}
+
+enum SwipeDirection {
+    case left
+    case right
+    case up
+    case down
 }

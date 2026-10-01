@@ -22,7 +22,7 @@ final class CameraModel: Camera {
     /// The current status of the camera, such as unauthorized, running, or failed.
     private(set) var status = CameraStatus.unknown
     
-    /// The current state of photo capture.
+    /// The current state of photo or movie capture.
     private(set) var captureActivity = CaptureActivity.idle
     
     /// A value that indicates whether the photo output can accept a new capture request.
@@ -31,13 +31,16 @@ final class CameraModel: Camera {
     /// A Boolean value that indicates whether the app is currently switching video devices.
     private(set) var isSwitchingVideoDevices = false
     
+    /// A Boolean value that indicates whether the app is currently switching capture modes.
+    private(set) var isSwitchingModes = false
+    
     /// A Boolean value that indicates whether to show visual feedback when capture begins.
     private(set) var shouldFlashScreen = false
     
-    /// A thumbnail for the last captured photo.
+    /// A thumbnail for the last captured photo or video.
     private(set) var thumbnail: CGImage?
     
-    /// An error that indicates the details of an error during photo capture.
+    /// An error that indicates the details of an error during photo or movie capture.
     private(set) var error: Error?
     
     /// An object that provides the connection between the capture session and the video preview layer.
@@ -72,7 +75,20 @@ final class CameraModel: Camera {
         }
     }
     
-    // MARK: - Changing devices
+    // MARK: - Changing modes and devices
+    
+    /// A value that indicates the mode of capture for the camera.
+    var captureMode = CaptureMode.photo {
+        didSet {
+            guard status == .running else { return }
+            Task {
+                isSwitchingModes = true
+                defer { isSwitchingModes = false }
+                // Update the configuration of the capture service for the new mode.
+                try? await captureService.setCaptureMode(captureMode)
+            }
+        }
+    }
     
     /// Selects the next available video device for capture.
     func switchVideoDevices() async {
@@ -119,6 +135,25 @@ final class CameraModel: Camera {
         shouldFlashScreen = true
         withAnimation(.linear(duration: 0.01)) {
             shouldFlashScreen = false
+        }
+    }
+    
+    // MARK: - Video capture
+    
+    /// Toggles the state of recording.
+    func toggleRecording() async {
+        switch await captureService.captureActivity {
+        case .movieCapture:
+            do {
+                // If currently recording, stop the recording and write the movie to the library.
+                let movie = try await captureService.stopRecording()
+                try await mediaLibrary.save(movie: movie)
+            } catch {
+                self.error = error
+            }
+        default:
+            // In any other case, start recording.
+            await captureService.startRecording()
         }
     }
     

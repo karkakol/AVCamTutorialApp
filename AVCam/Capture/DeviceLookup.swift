@@ -43,6 +43,16 @@ final class DeviceLookup {
         }
     }
     
+    /// Returns the default microphone for the device on which the app runs.
+    var defaultMic: AVCaptureDevice {
+        get throws {
+            guard let audioDevice = AVCaptureDevice.default(for: .audio) else {
+                throw CameraError.audioDeviceUnavailable
+            }
+            return audioDevice
+        }
+    }
+    
     var cameras: [AVCaptureDevice] {
         // Populate the cameras array with the available cameras.
         var cameras: [AVCaptureDevice] = []

@@ -12,13 +12,14 @@ import AVFoundation
 struct CameraUI<CameraModel: Camera>: PlatformView {
 
     @State var camera: CameraModel
+    @Binding var swipeDirection: SwipeDirection
     
     @Environment(\.verticalSizeClass) var verticalSizeClass
     @Environment(\.horizontalSizeClass) var horizontalSizeClass
-    
+
     // The size of the window that contains the camera UI.
     @State private var windowSize = CGSize.zero
-    
+
     var body: some View {
         Group {
             if isRegularSize {
@@ -37,8 +38,14 @@ struct CameraUI<CameraModel: Camera>: PlatformView {
             windowSize = size
         }
         .overlay(alignment: .top) {
-            LiveBadge()
-                .opacity(camera.captureActivity.isLivePhoto ? 1.0 : 0.0)
+            switch camera.captureMode {
+            case .photo:
+                LiveBadge()
+                    .opacity(camera.captureActivity.isLivePhoto ? 1.0 : 0.0)
+            case .video:
+                RecordingTimeView(time: camera.captureActivity.currentTime)
+                    .offset(y: isRegularSize ? 20 : 0)
+            }
         }
         .overlay {
             StatusOverlayView(status: camera.status)
@@ -51,6 +58,7 @@ struct CameraUI<CameraModel: Camera>: PlatformView {
         VStack(spacing: 0) {
             FeaturesToolbar(camera: camera)
             Spacer()
+            CaptureModeView(camera: camera, direction: $swipeDirection)
             MainToolbar(camera: camera)
                 .padding(.bottom, bottomPadding)
         }
@@ -62,6 +70,8 @@ struct CameraUI<CameraModel: Camera>: PlatformView {
         VStack {
             Spacer()
             ZStack {
+                CaptureModeView(camera: camera, direction: $swipeDirection)
+                    .offset(x: -250) // The vertical offset from center.
                 MainToolbar(camera: camera)
                 FeaturesToolbar(camera: camera)
                     .frame(width: 250)
@@ -84,6 +94,6 @@ struct CameraUI<CameraModel: Camera>: PlatformView {
 
 #Preview {
     PreviewBackground {
-        CameraUI(camera: PreviewCameraModel())
+        CameraUI(camera: PreviewCameraModel(), swipeDirection: .constant(.left))
     }
 }

@@ -78,6 +78,19 @@ actor MediaLibrary {
         }
     }
     
+    /// Saves a movie to the Photos library.
+    func save(movie: Movie) async throws {
+        let location = try await currentLocation
+        try await performChange {
+            let options = PHAssetResourceCreationOptions()
+            options.shouldMoveFile = true
+            let creationRequest = PHAssetCreationRequest.forAsset()
+            creationRequest.addResource(with: .video, fileURL: movie.url, options: options)
+            creationRequest.location = location
+            return creationRequest.placeholderForCreatedAsset
+        }
+    }
+    
     // A template method for writing a change to the user's photo library.
     private func performChange(_ change: @Sendable @escaping () -> PHObjectPlaceholder?) async throws {
         guard await isAuthorized else {

@@ -29,11 +29,17 @@ actor CaptureService {
     // An object that manages the app's photo capture behavior.
     private let photoCapture = PhotoCapture()
     
+    // An object that manages the app's video capture behavior.
+    private let movieCapture = MovieCapture()
+    
     // An internal collection of output services.
-    private var outputServices: [any OutputService] { [photoCapture] }
+    private var outputServices: [any OutputService] { [photoCapture, movieCapture] }
     
     // The video input for the currently selected device camera.
     private var activeVideoInput: AVCaptureDeviceInput?
+    
+    // The mode of capture, either photo or video. Defaults to photo.
+    private(set) var captureMode = CaptureMode.photo
     
     // An object the service uses to retrieve capture devices.
     private let deviceLookup = DeviceLookup()
@@ -92,11 +98,13 @@ actor CaptureService {
         observeOutputServices()
         
         do {
-            // Retrieve the default camera.
+            // Retrieve the default camera and microphone.
             let defaultCamera = try deviceLookup.defaultCamera
+            let defaultMic = try deviceLookup.defaultMic
 
-            // Add an input for the default camera device.
+            // Add inputs for the default camera and microphone devices.
             activeVideoInput = try addInput(for: defaultCamera)
+            try addInput(for: defaultMic)
 
             // Configure the session for photo capture.
             captureSession.sessionPreset = .photo
@@ -144,6 +152,34 @@ actor CaptureService {
             fatalError("No device found for current video input.")
         }
         return device
+    }
+    
+    // MARK: - Capture mode selection
+    
+    /// Changes the mode of capture, which can be `photo` or `video`.
+    ///
+    /// - Parameter `captureMode`: The capture mode to enable.
+    func setCaptureMode(_ captureMode: CaptureMode) throws {
+        // Update the internal capture mode value before performing the session configuration.
+        self.captureMode = captureMode
+        
+        // Change the configuration atomically.
+        captureSession.beginConfiguration()
+        defer { captureSession.commitConfiguration() }
+        
+        // Configure the capture session for the selected capture mode.
+        switch captureMode {
+        case .photo:
+            // The app needs to remove the movie capture output to perform Live Photo capture.
+            captureSession.sessionPreset = .photo
+            captureSession.removeOutput(movieCapture.output)
+        case .video:
+            captureSession.sessionPreset = .high
+            try addOutput(movieCapture.output)
+        }
+
+        // Update the advertised capabilities after reconfiguration.
+        updateCaptureCapabilities()
     }
     
     // MARK: - Device selection
@@ -335,6 +371,18 @@ actor CaptureService {
         try await photoCapture.capturePhoto(with: features)
     }
     
+    // MARK: - Movie capture
+    /// Starts recording video. The video records until the user stops recording,
+    /// which calls the following `stopRecording()` method.
+    func startRecording() {
+        movieCapture.startRecording()
+    }
+
+    /// Stops the recording and returns the captured movie.
+    func stopRecording() async throws -> Movie {
+        try await movieCapture.stopRecording()
+    }
+    
     // MARK: - Internal state management
     /// Updates the state of the actor to ensure its advertised capabilities are accurate.
     ///
@@ -344,14 +392,19 @@ actor CaptureService {
     private func updateCaptureCapabilities() {
         // Update the output service configuration.
         outputServices.forEach { $0.updateConfiguration(for: currentDevice) }
-        // Set the capture service's capabilities.
-        captureCapabilities = photoCapture.capabilities
+        // Set the capture service's capabilities for the selected mode.
+        switch captureMode {
+        case .photo:
+            captureCapabilities = photoCapture.capabilities
+        case .video:
+            captureCapabilities = movieCapture.capabilities
+        }
     }
     
-    /// Assign the `captureActivity` value of the photo capture service
-    /// to the actor's property.
+    /// Merge the `captureActivity` values of the photo and movie capture services,
+    /// and assign the value to the actor's property.`
     private func observeOutputServices() {
-        photoCapture.$captureActivity
+        Publishers.Merge(photoCapture.$captureActivity, movieCapture.$captureActivity)
             .assign(to: &$captureActivity)
         photoCapture.$captureReadiness
             .assign(to: &$captureReadiness)

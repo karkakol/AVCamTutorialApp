@@ -18,9 +18,14 @@ struct FeaturesToolbar<CameraModel: Camera>: PlatformView {
     var body: some View {
         HStack(spacing: 30) {
             Spacer()
-            livePhotoButton
-            prioritizePicker
-            rawMenu
+            switch camera.captureMode {
+            case .photo:
+                livePhotoButton
+                prioritizePicker
+                rawMenu
+            case .video:
+                EmptyView()
+            }
         }
         .buttonStyle(DefaultButtonStyle(size: isRegularSize ? .large : .small))
         .padding([.leading, .trailing])

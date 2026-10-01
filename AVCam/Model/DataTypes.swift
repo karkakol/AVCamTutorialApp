@@ -28,6 +28,8 @@ enum CaptureActivity {
     case idle
     /// A status that indicates the capture service is performing photo capture.
     case photoCapture(willCapture: Bool = false, isLivePhoto: Bool = false)
+    /// A status that indicates the capture service is performing movie capture.
+    case movieCapture(duration: TimeInterval = 0.0)
     
     var isLivePhoto: Bool {
         if case .photoCapture(_, let isLivePhoto) = self {
@@ -41,6 +43,38 @@ enum CaptureActivity {
             return willCapture
         }
         return false
+    }
+    
+    var currentTime: TimeInterval {
+        if case .movieCapture(let duration) = self {
+            return duration
+        }
+        return .zero
+    }
+    
+    var isRecording: Bool {
+        if case .movieCapture = self {
+            return true
+        }
+        return false
+    }
+}
+
+/// An enumeration of the capture modes that the camera supports.
+enum CaptureMode: String, Identifiable, CaseIterable, Codable {
+    var id: Self { self }
+    /// A mode that enables photo capture.
+    case photo
+    /// A mode that enables video capture.
+    case video
+    
+    var systemName: String {
+        switch self {
+        case .photo:
+            "camera.fill"
+        case .video:
+            "video.fill"
+        }
     }
 }
 
@@ -74,6 +108,12 @@ struct Photo: Sendable {
     let livePhotoMovieURL: URL?
     /// The DNG data of a RAW capture, or `nil` when the capture has no RAW photo.
     let rawData: Data?
+}
+
+/// A structure that contains the uniform type identifier and movie URL.
+struct Movie: Sendable {
+    /// The temporary location of the file on disk.
+    let url: URL
 }
 
 struct PhotoFeatures {
@@ -141,6 +181,7 @@ enum RAWFormat: Int, Identifiable, CaseIterable, CustomStringConvertible, Codabl
 
 enum CameraError: Error {
     case videoDeviceUnavailable
+    case audioDeviceUnavailable
     case addInputFailed
     case addOutputFailed
     case setupFailed

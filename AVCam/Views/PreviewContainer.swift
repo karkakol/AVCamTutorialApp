@@ -24,6 +24,7 @@ struct PreviewContainer<Content: View, CameraModel: Camera>: View {
     
     @State var camera: CameraModel
     
+
     // State values for transition effects.
     @State private var blurRadius = CGFloat.zero
     
@@ -47,7 +48,7 @@ struct PreviewContainer<Content: View, CameraModel: Camera>: View {
             // Apply an appropriate aspect ratio based on the selected capture mode.
             .aspectRatio(aspectRatio, contentMode: .fit)
             // In photo mode, adjust the vertical offset of the preview area to better fit the UI.
-            .offset(y: photoModeOffset)
+            .offset(y: camera.captureMode == .photo ? photoModeOffset : 0)
         } else {
             // On regular-sized UIs, show the content in full screen.
             previewView
@@ -58,6 +59,7 @@ struct PreviewContainer<Content: View, CameraModel: Camera>: View {
     var previewView: some View {
         content
             .blur(radius: blurRadius, opaque: true)
+            .onChange(of: camera.isSwitchingModes, updateBlurRadius(_:_:))
             .onChange(of: camera.isSwitchingVideoDevices, updateBlurRadius(_:_:))
     }
     
@@ -66,8 +68,8 @@ struct PreviewContainer<Content: View, CameraModel: Camera>: View {
             blurRadius = isSwitching ? 30 : 0
         }
     }
-    
+
     var aspectRatio: AspectRatio {
-        photoAspectRatio
+        camera.captureMode == .photo ? photoAspectRatio : movieAspectRatio
     }
 }

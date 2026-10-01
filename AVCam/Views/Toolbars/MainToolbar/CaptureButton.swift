@@ -12,6 +12,7 @@ import SwiftUI
 struct CaptureButton<CameraModel: Camera>: View {
     
     @State var camera: CameraModel
+    @State var isRecording = false
     
     private let mainButtonDimension: CGFloat = 68
     
@@ -23,9 +24,18 @@ struct CaptureButton<CameraModel: Camera>: View {
     
     @ViewBuilder
     var captureButton: some View {
-        PhotoCaptureButton(readiness: camera.captureReadiness) {
-            Task {
-                await camera.capturePhoto()
+        switch camera.captureMode {
+        case .photo:
+            PhotoCaptureButton(readiness: camera.captureReadiness) {
+                Task {
+                    await camera.capturePhoto()
+                }
+            }
+        case .video:
+            MovieCaptureButton(isRecording: $isRecording) { _ in
+                Task {
+                    await camera.toggleRecording()
+                }
             }
         }
     }
@@ -33,7 +43,13 @@ struct CaptureButton<CameraModel: Camera>: View {
 
 #Preview("Photo") {
     PreviewBackground {
-        CaptureButton(camera: PreviewCameraModel())
+        CaptureButton(camera: PreviewCameraModel(captureMode: .photo))
+    }
+}
+
+#Preview("Video") {
+    PreviewBackground {
+        CaptureButton(camera: PreviewCameraModel(captureMode: .video))
     }
 }
 
@@ -86,6 +102,47 @@ private struct PhotoCaptureButton: View {
             configuration.label
                 .scaleEffect(configuration.isPressed ? 0.85 : 1.0)
                 .animation(.easeInOut(duration: 0.15), value: configuration.isPressed)
+        }
+    }
+}
+
+private struct MovieCaptureButton: View {
+    
+    private let action: (Bool) -> Void
+    private let lineWidth = CGFloat(4.0)
+    
+    @Binding private var isRecording: Bool
+    
+    init(isRecording: Binding<Bool>, action: @escaping (Bool) -> Void) {
+        _isRecording = isRecording
+        self.action = action
+    }
+    
+    var body: some View {
+        ZStack {
+            Circle()
+                .stroke(lineWidth: lineWidth)
+                .foregroundColor(Color.white)
+            Button {
+                withAnimation(.easeInOut(duration: 0.25)) {
+                    isRecording.toggle()
+                }
+                action(isRecording)
+            } label: {
+                GeometryReader { geometry in
+                    RoundedRectangle(cornerRadius: geometry.size.width / (isRecording ? 4.0 : 2.0))
+                        .inset(by: lineWidth * 1.2)
+                        .fill(.red)
+                        .scaleEffect(isRecording ? 0.6 : 1.0)
+                }
+            }
+            .buttonStyle(NoFadeButtonStyle())
+        }
+    }
+    
+    struct NoFadeButtonStyle: ButtonStyle {
+        func makeBody(configuration: Configuration) -> some View {
+            configuration.label
         }
     }
 }
