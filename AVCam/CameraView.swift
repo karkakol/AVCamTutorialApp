@@ -26,6 +26,27 @@ struct CameraView<CameraModel: Camera>: PlatformView {
             PreviewContainer(camera: camera) {
                 // A view that provides a preview of the captured content.
                 CameraPreview(source: camera.previewSource)
+                    // Handle capture events from device hardware buttons.
+                    .onCameraCaptureEvent(defaultSoundDisabled: true) { event in
+                        if event.phase == .ended {
+                            let sound: AVCaptureEventSound
+                            switch camera.captureMode {
+                            case .photo:
+                                sound = .cameraShutter
+                                // Capture a photo when pressing a hardware button.
+                                await camera.capturePhoto()
+                            case .video:
+                                sound = camera.captureActivity.isRecording ?
+                                    .endVideoRecording : .beginVideoRecording
+                                // Toggle video recording when pressing a hardware button.
+                                await camera.toggleRecording()
+                            }
+                            // Play a sound when capturing by clicking an AirPods stem.
+                            if event.shouldPlaySound {
+                                event.play(sound)
+                            }
+                        }
+                    }
                     // Focus and expose at the tapped point.
                     .onTapGesture { location in
                         Task { await camera.focusAndExpose(at: location) }

@@ -113,6 +113,9 @@ actor CaptureService {
             let defaultCamera = try deviceLookup.defaultCamera
             let defaultMic = try deviceLookup.defaultMic
 
+            // Enable using AirPods as a high-quality lapel microphone.
+            captureSession.configuresApplicationAudioSessionForBluetoothHighQualityRecording = true
+
             // Add inputs for the default camera and microphone devices.
             activeVideoInput = try addInput(for: defaultCamera)
             try addInput(for: defaultMic)

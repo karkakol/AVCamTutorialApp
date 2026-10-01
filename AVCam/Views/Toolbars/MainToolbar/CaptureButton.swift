@@ -20,6 +20,13 @@ struct CaptureButton<CameraModel: Camera>: View {
         captureButton
             .aspectRatio(1.0, contentMode: .fit)
             .frame(width: mainButtonDimension)
+            // Respond to recording state changes that occur from hardware button presses.
+            .onChange(of: camera.captureActivity.isRecording) { _, newValue in
+                // Ensure the button animation occurs when toggling recording state from a hardware button.
+                withAnimation(.easeInOut(duration: 0.25)) {
+                    isRecording = newValue
+                }
+            }
     }
     
     @ViewBuilder
