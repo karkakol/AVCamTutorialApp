@@ -26,6 +26,10 @@ final class MovieCapture: OutputService {
     private let refreshInterval = TimeInterval(0.25)
     private var timerCancellable: AnyCancellable?
     
+    // A Boolean value that indicates whether the currently selected camera's
+    // active format supports HDR.
+    private var isHDRSupported = false
+
     // MARK: - Capturing a movie
 
     /// Starts movie recording.
@@ -94,6 +98,9 @@ final class MovieCapture: OutputService {
     }
     
     func updateConfiguration(for device: AVCaptureDevice) {
+        // The app supports HDR video capture if the active format supports it.
+        isHDRSupported = device.activeFormat10BitVariant != nil
+
         // The output has a video connection only while the session contains it, which is the
         // case in video capture mode. Adding the output creates a new connection, so the service
         // configures it here rather than when recording starts.
@@ -116,6 +123,6 @@ final class MovieCapture: OutputService {
     // MARK: - Configuration
     /// Returns the capabilities for this capture service.
     var capabilities: CaptureCapabilities {
-        CaptureCapabilities()
+        CaptureCapabilities(isHDRSupported: isHDRSupported)
     }
 }

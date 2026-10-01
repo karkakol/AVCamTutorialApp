@@ -62,6 +62,12 @@ protocol Camera: AnyObject, SendableMetatype {
     /// A Boolean value that indicates whether to show visual feedback when capture begins.
     var shouldFlashScreen: Bool { get }
     
+    /// A Boolean that indicates whether the camera supports HDR video recording.
+    var isHDRVideoSupported: Bool { get }
+    
+    /// A Boolean value that indicates whether camera enables HDR video recording.
+    var isHDRVideoEnabled: Bool { get set }
+    
     /// Starts or stops recording a movie, and writes it to the user's photo library when complete.
     func toggleRecording() async
     

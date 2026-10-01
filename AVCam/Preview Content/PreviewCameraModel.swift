@@ -18,6 +18,8 @@ class PreviewCameraModel: Camera {
     let captureCapabilities = CaptureCapabilities(isAppleProRAWSupported: true, isBayerRAWSupported: true)
     var shouldFlashScreen = false
     var captureReadiness = CaptureReadiness.ready
+    var isHDRVideoSupported = false
+    var isHDRVideoEnabled = false
     
     struct PreviewSourceStub: PreviewSource {
         // Stubbed out for test purposes.

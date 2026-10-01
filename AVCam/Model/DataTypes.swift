@@ -129,13 +129,16 @@ struct CaptureCapabilities {
     let isLivePhotoCaptureSupported: Bool
     let isAppleProRAWSupported: Bool
     let isBayerRAWSupported: Bool
+    let isHDRSupported: Bool
     
     init(isLivePhotoCaptureSupported: Bool = false,
          isAppleProRAWSupported: Bool = false,
-         isBayerRAWSupported: Bool = false) {
+         isBayerRAWSupported: Bool = false,
+         isHDRSupported: Bool = false) {
         self.isLivePhotoCaptureSupported = isLivePhotoCaptureSupported
         self.isAppleProRAWSupported = isAppleProRAWSupported
         self.isBayerRAWSupported = isBayerRAWSupported
+        self.isHDRSupported = isHDRSupported
     }
     
     static let unknown = CaptureCapabilities()

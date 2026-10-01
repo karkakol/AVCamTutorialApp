@@ -19,6 +19,8 @@ actor CaptureService {
     @Published private(set) var captureReadiness = CaptureReadiness.sessionNotRunning
     /// A value that indicates the current capture capabilities of the service.
     @Published private(set) var captureCapabilities = CaptureCapabilities.unknown
+    /// A Boolean value that indicates whether the user enables HDR video capture.
+    @Published var isHDRVideoEnabled = false
     
     /// A type that connects a preview destination with the capture session.
     nonisolated let previewSource: PreviewSource
@@ -176,6 +178,9 @@ actor CaptureService {
         case .video:
             captureSession.sessionPreset = .high
             try addOutput(movieCapture.output)
+            if isHDRVideoEnabled {
+                setHDRVideoEnabled(true)
+            }
         }
 
         // Update the advertised capabilities after reconfiguration.
@@ -381,6 +386,28 @@ actor CaptureService {
     /// Stops the recording and returns the captured movie.
     func stopRecording() async throws -> Movie {
         try await movieCapture.stopRecording()
+    }
+    
+
+    /// Sets whether the app captures HDR video.
+    func setHDRVideoEnabled(_ isEnabled: Bool) {
+        // Bracket the following configuration in a begin/commit configuration pair.
+        captureSession.beginConfiguration()
+        defer { captureSession.commitConfiguration() }
+        do {
+            // If the current device provides a 10-bit HDR format, enable it for use.
+            if isEnabled, let format = currentDevice.activeFormat10BitVariant {
+                try currentDevice.lockForConfiguration()
+                currentDevice.activeFormat = format
+                currentDevice.unlockForConfiguration()
+                isHDRVideoEnabled = true
+            } else {
+                captureSession.sessionPreset = .high
+                isHDRVideoEnabled = false
+            }
+        } catch {
+            logger.error("Unable to obtain lock on device and can't enable HDR video capture.")
+        }
     }
     
     // MARK: - Internal state management

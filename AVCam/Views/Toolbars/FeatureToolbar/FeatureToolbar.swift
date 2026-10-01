@@ -24,7 +24,9 @@ struct FeaturesToolbar<CameraModel: Camera>: PlatformView {
                 prioritizePicker
                 rawMenu
             case .video:
-                EmptyView()
+                if camera.isHDRVideoSupported {
+                    hdrButton
+                }
             }
         }
         .buttonStyle(DefaultButtonStyle(size: isRegularSize ? .large : .small))
@@ -88,6 +90,27 @@ struct FeaturesToolbar<CameraModel: Camera>: PlatformView {
                 Image(systemName: camera.rawFormat == .off ? "r.square" : "r.square.fill")
             }
         }
+    }
+
+    @ViewBuilder
+    var hdrButton: some View {
+        if isCompactSize {
+            hdrToggleButton
+        } else {
+            hdrToggleButton
+                .buttonStyle(.bordered)
+                .buttonBorderShape(.capsule)
+        }
+    }
+    
+    var hdrToggleButton: some View {
+        Button {
+            camera.isHDRVideoEnabled.toggle()
+        } label: {
+            Text("HDR \(camera.isHDRVideoEnabled ? "On" : "Off")")
+                .font(.body.weight(.semibold))
+        }
+        .disabled(camera.captureActivity.isRecording)
     }
 }
 

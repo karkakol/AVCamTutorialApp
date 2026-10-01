@@ -46,6 +46,9 @@ final class CameraModel: Camera {
     /// An object that provides the connection between the capture session and the video preview layer.
     var previewSource: PreviewSource { captureService.previewSource }
     
+    /// A Boolean that indicates whether the camera supports HDR video recording.
+    private(set) var isHDRVideoSupported = false
+    
     /// An object that saves captured media to a person's Photos library.
     private let mediaLibrary = MediaLibrary()
     
@@ -140,6 +143,16 @@ final class CameraModel: Camera {
     
     // MARK: - Video capture
     
+    /// A Boolean value that indicates whether the camera captures video in HDR format.
+    var isHDRVideoEnabled = false {
+        didSet {
+            guard status == .running, captureMode == .video else { return }
+            Task {
+                await captureService.setHDRVideoEnabled(isHDRVideoEnabled)
+            }
+        }
+    }
+    
     /// Toggles the state of recording.
     func toggleRecording() async {
         switch await captureService.captureActivity {
@@ -197,6 +210,13 @@ final class CameraModel: Camera {
                     // Forward the activity to the UI.
                     captureActivity = activity
                 }
+            }
+        }
+        
+        Task {
+            // Await updates to the capabilities that the capture service advertises.
+            for await capabilities in await captureService.$captureCapabilities.values {
+                isHDRVideoSupported = capabilities.isHDRSupported
             }
         }
     }
