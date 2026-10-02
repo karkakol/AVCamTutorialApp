@@ -17,7 +17,9 @@ final class DeviceLookup {
     private let externalCameraDiscoverSession: AVCaptureDevice.DiscoverySession
     
     init() {
-        backCameraDiscoverySession = AVCaptureDevice.DiscoverySession(deviceTypes: [.builtInDualCamera, .builtInWideAngleCamera],
+        // List the virtual devices first. The first device in the result has the most lenses.
+        backCameraDiscoverySession = AVCaptureDevice.DiscoverySession(deviceTypes: [.builtInTripleCamera, .builtInDualWideCamera,
+                                                                                    .builtInDualCamera, .builtInWideAngleCamera],
                                                                       mediaType: .video,
                                                                       position: .back)
         frontCameraDiscoverySession = AVCaptureDevice.DiscoverySession(deviceTypes: [.builtInTrueDepthCamera, .builtInWideAngleCamera],

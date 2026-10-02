@@ -38,6 +38,12 @@ final class CameraModel: Camera {
     /// A Boolean value that indicates whether the app is currently switching capture modes.
     private(set) var isSwitchingModes = false
     
+    /// The zoom levels that the selected camera offers.
+    private(set) var zoomLevels = [ZoomLevel]()
+    
+    /// The zoom factor of the selected camera, as the value to show to a person.
+    private(set) var displayZoomFactor: CGFloat = 1.0
+    
     /// A Boolean value that indicates whether to show visual feedback when capture begins.
     private(set) var shouldFlashScreen = false
     
@@ -120,6 +126,18 @@ final class CameraModel: Camera {
         isSwitchingVideoDevices = true
         defer { isSwitchingVideoDevices = false }
         await captureService.selectNextVideoDevice()
+    }
+    
+    // MARK: - Zoom
+    
+    /// Changes the zoom to the specified level with a smooth transition.
+    func setZoom(to level: ZoomLevel) async {
+        await captureService.setZoom(to: level)
+    }
+    
+    /// Changes the zoom to the specified display value immediately.
+    func setZoom(displayFactor: CGFloat) async {
+        await captureService.setZoom(displayFactor: displayFactor)
     }
     
     // MARK: - Photo capture
@@ -261,6 +279,20 @@ final class CameraModel: Camera {
                     // Prefer showing a minimized UI when capture controls enter a fullscreen appearance.
                     prefersMinimizedUI = isShowingFullscreenControls
                 }
+            }
+        }
+        
+        Task {
+            // Await new zoom levels from the capture service, for example after a camera switch.
+            for await zoomLevels in await captureService.$zoomLevels.values {
+                self.zoomLevels = zoomLevels
+            }
+        }
+        
+        Task {
+            // Await updates to the zoom factor of the selected camera.
+            for await displayZoomFactor in await captureService.$displayZoomFactor.values {
+                self.displayZoomFactor = displayZoomFactor
             }
         }
         

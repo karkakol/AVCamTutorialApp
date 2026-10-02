@@ -22,6 +22,12 @@ class PreviewCameraModel: Camera {
     var isHDRVideoSupported = false
     var isHDRVideoEnabled = false
     
+    // Example zoom levels, so that SwiftUI previews show the zoom control.
+    let zoomLevels = [ZoomLevel(videoZoomFactor: 1.0, displayFactor: 0.5),
+                      ZoomLevel(videoZoomFactor: 2.0, displayFactor: 1.0),
+                      ZoomLevel(videoZoomFactor: 6.0, displayFactor: 3.0)]
+    private(set) var displayZoomFactor: CGFloat = 1.0
+    
     struct PreviewSourceStub: PreviewSource {
         // Stubbed out for test purposes.
         func connect(to target: PreviewTarget) {}
@@ -87,5 +93,13 @@ class PreviewCameraModel: Camera {
     
     func syncState() async {
         logger.debug("Syncing state isn't implemented in PreviewCamera.")
+    }
+    
+    func setZoom(to level: ZoomLevel) {
+        displayZoomFactor = level.displayFactor
+    }
+    
+    func setZoom(displayFactor: CGFloat) {
+        displayZoomFactor = displayFactor
     }
 }

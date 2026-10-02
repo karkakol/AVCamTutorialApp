@@ -58,6 +58,8 @@ struct CameraUI<CameraModel: Camera>: PlatformView {
         VStack(spacing: 0) {
             FeaturesToolbar(camera: camera)
             Spacer()
+            ZoomControl(camera: camera)
+                .padding(.bottom, 12)
             CaptureModeView(camera: camera, direction: $swipeDirection)
             MainToolbar(camera: camera)
                 .padding(.bottom, bottomPadding)
@@ -69,6 +71,7 @@ struct CameraUI<CameraModel: Camera>: PlatformView {
     var regularUI: some View {
         VStack {
             Spacer()
+            ZoomControl(camera: camera)
             ZStack {
                 CaptureModeView(camera: camera, direction: $swipeDirection)
                     .offset(x: -250) // The vertical offset from center.

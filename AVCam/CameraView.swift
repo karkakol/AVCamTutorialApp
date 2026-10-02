@@ -19,6 +19,9 @@ struct CameraView<CameraModel: Camera>: PlatformView {
 
     // The direction a person swipes on the camera preview or mode selector.
     @State var swipeDirection = SwipeDirection.left
+    
+    // The zoom factor at the start of a pinch gesture.
+    @State private var pinchStartFactor: CGFloat?
 
     var body: some View {
         ZStack {
@@ -53,6 +56,8 @@ struct CameraView<CameraModel: Camera>: PlatformView {
                     }
                     // Switch between capture modes by swiping left and right.
                     .simultaneousGesture(swipeGesture)
+                    // Zoom in and out with two fingers.
+                    .simultaneousGesture(pinchGesture)
                     /// The value of `shouldFlashScreen` changes briefly to `true` when capture
                     /// starts, and then immediately changes to `false`. Use this change to
                     /// flash the screen to provide visual feedback when capturing photos.
@@ -63,6 +68,19 @@ struct CameraView<CameraModel: Camera>: PlatformView {
         }
     }
 
+    var pinchGesture: some Gesture {
+        MagnifyGesture()
+            .onChanged { value in
+                // Keep the zoom factor from the start of the gesture, and scale it by the gesture's value.
+                let startFactor = pinchStartFactor ?? camera.displayZoomFactor
+                pinchStartFactor = startFactor
+                Task { await camera.setZoom(displayFactor: startFactor * value.magnification) }
+            }
+            .onEnded { _ in
+                pinchStartFactor = nil
+            }
+    }
+    
     var swipeGesture: some Gesture {
         DragGesture(minimumDistance: 50)
             .onEnded {

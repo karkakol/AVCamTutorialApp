@@ -44,6 +44,18 @@ protocol Camera: AnyObject, SendableMetatype {
     /// A Boolean value that indicates whether the camera is currently switching video devices.
     var isSwitchingVideoDevices: Bool { get }
     
+    /// The zoom levels that the selected camera offers.
+    var zoomLevels: [ZoomLevel] { get }
+    
+    /// The zoom factor of the selected camera, as the value to show to a person.
+    var displayZoomFactor: CGFloat { get }
+    
+    /// Changes the zoom to the specified level with a smooth transition.
+    func setZoom(to level: ZoomLevel) async
+    
+    /// Changes the zoom to the specified display value immediately.
+    func setZoom(displayFactor: CGFloat) async
+    
     /// Performs a one-time automatic focus and exposure operation.
     func focusAndExpose(at point: CGPoint) async
     

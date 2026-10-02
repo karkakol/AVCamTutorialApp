@@ -83,6 +83,7 @@
 				Views/CameraPreview.swift,
 				Views/CameraUI.swift,
 				Views/Controls/CaptureModeView.swift,
+				Views/Controls/ZoomControl.swift,
 				Views/Overlays/LiveBadge.swift,
 				Views/Overlays/RecordingTimeView.swift,
 				Views/Overlays/StatusOverlayView.swift,

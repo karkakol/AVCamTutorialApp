@@ -23,6 +23,10 @@ actor CaptureService {
     @Published private(set) var isInterrupted = false
     /// A Boolean value that indicates whether the user enables HDR video capture.
     @Published var isHDRVideoEnabled = false
+    /// The zoom levels that the selected camera offers.
+    @Published private(set) var zoomLevels = [ZoomLevel]()
+    /// The zoom factor of the selected camera, as the value to show to a person.
+    @Published private(set) var displayZoomFactor: CGFloat = 1.0
     /// A Boolean value that indicates whether capture controls are in a fullscreen appearance.
     @Published var isShowingFullscreenControls = false
     
@@ -56,6 +60,12 @@ actor CaptureService {
     // An object that monitors video device rotations.
     private var rotationCoordinator: AVCaptureDevice.RotationCoordinator!
     private var rotationObservers = [AnyObject]()
+    
+    // An observation of the zoom factor of the selected camera.
+    private var zoomObserver: NSKeyValueObservation?
+    
+    // The largest zoom factor that the app offers, as a display value.
+    private let maxDisplayZoomFactor: CGFloat = 10.0
     
     // A Boolean value that indicates whether the actor finished its required configuration.
     private var isSetUp = false
@@ -154,6 +164,8 @@ actor CaptureService {
             
             // Configure controls to use with the Camera Control.
             configureControls(for: defaultCamera)
+            // Configure the zoom levels for the default camera.
+            configureZoom(for: defaultCamera)
             // Monitor the system-preferred camera state.
             monitorSystemPreferredCamera()
             // Configure a rotation coordinator for the default video device.
@@ -263,6 +275,79 @@ actor CaptureService {
         return controls
     }
     
+    // MARK: - Zoom
+    
+    /// Creates the zoom levels for the specified device, and starts the device at the 1x level.
+    private func configureZoom(for device: AVCaptureDevice) {
+        // The ratio between the zoom factor of the device and the value that the system shows to a person.
+        let multiplier = displayMultiplier(for: device)
+        
+        // The first level is the widest field of view of the device. A zoom factor is never less than 1.
+        var factors = [max(device.minAvailableVideoZoomFactor, 1.0)]
+        // A virtual device changes to its next camera at each switch-over zoom factor.
+        factors += device.virtualDeviceSwitchOverVideoZoomFactors.map { CGFloat(truncating: $0) }
+        // A device with one level gets a 2x level, if it can zoom that far.
+        if factors.count == 1, device.maxAvailableVideoZoomFactor >= factors[0] * 2 {
+            factors.append(factors[0] * 2)
+        }
+        zoomLevels = factors.map { ZoomLevel(videoZoomFactor: $0, displayFactor: $0 * multiplier) }
+        
+        // Start at the level that a person sees as 1x. On a virtual device with an
+        // ultra-wide camera, the smallest zoom factor shows the 0.5x field of view.
+        setVideoZoomFactor(1.0 / multiplier, on: device, animated: false)
+        
+        // Observe the zoom factor, because the Camera Control and a zoom ramp also change it.
+        zoomObserver = device.observe(\.videoZoomFactor, options: [.initial, .new]) { [weak self] device, _ in
+            let zoomFactor = device.videoZoomFactor
+            Task { await self?.updateDisplayZoomFactor(for: zoomFactor, of: device) }
+        }
+    }
+    
+    private func updateDisplayZoomFactor(for zoomFactor: CGFloat, of device: AVCaptureDevice) {
+        displayZoomFactor = zoomFactor * displayMultiplier(for: device)
+    }
+    
+    /// Returns the ratio between the zoom factor of the device and the value to show to a person.
+    private func displayMultiplier(for device: AVCaptureDevice) -> CGFloat {
+        // Some devices, such as a simulated camera, report no multiplier. Use 1 for them.
+        let multiplier = device.displayVideoZoomFactorMultiplier
+        return multiplier > 0 ? multiplier : 1.0
+    }
+    
+    /// Changes the zoom to the specified level with a smooth transition.
+    func setZoom(to level: ZoomLevel) {
+        setVideoZoomFactor(level.videoZoomFactor, on: currentDevice, animated: true)
+    }
+    
+    /// Changes the zoom to the specified display value immediately.
+    ///
+    /// The app calls this method many times during a pinch gesture.
+    func setZoom(displayFactor: CGFloat) {
+        let device = currentDevice
+        setVideoZoomFactor(displayFactor / displayMultiplier(for: device), on: device, animated: false)
+    }
+    
+    private func setVideoZoomFactor(_ factor: CGFloat, on device: AVCaptureDevice, animated: Bool) {
+        // A device that cannot zoom, such as a simulated camera, reports a largest zoom factor of less than 1.
+        guard device.maxAvailableVideoZoomFactor >= 1.0 else { return }
+        // Keep the value in the range that the device supports. A value outside of the range raises an exception.
+        let smallestFactor = max(device.minAvailableVideoZoomFactor, 1.0)
+        let largestFactor = max(min(device.maxAvailableVideoZoomFactor, maxDisplayZoomFactor / displayMultiplier(for: device)), smallestFactor)
+        let factor = min(max(factor, smallestFactor), largestFactor)
+        do {
+            try device.lockForConfiguration()
+            if animated {
+                // Move to the new value at a constant rate. The rate doubles the zoom factor this many times each second.
+                device.ramp(toVideoZoomFactor: factor, withRate: 8.0)
+            } else {
+                device.videoZoomFactor = factor
+            }
+            device.unlockForConfiguration()
+        } catch {
+            logger.debug("Unable to change the zoom factor: \(error)")
+        }
+    }
+    
     // MARK: - Capture mode selection
     
     /// Changes the mode of capture, which can be `photo` or `video`.
@@ -292,6 +377,8 @@ actor CaptureService {
 
         // Update the advertised capabilities after reconfiguration.
         updateCaptureCapabilities()
+        // A new session preset can select a new device format. Create the zoom levels again.
+        configureZoom(for: currentDevice)
     }
     
     // MARK: - Device selection
@@ -339,6 +426,8 @@ actor CaptureService {
             activeVideoInput = try addInput(for: device)
             // Configure capture controls for new device selection.
             configureControls(for: device)
+            // Configure the zoom levels for the new device.
+            configureZoom(for: device)
             // Configure a new rotation coordinator for the new device.
             createRotationCoordinator(for: device)
             // Register for device observations.

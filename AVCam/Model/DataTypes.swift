@@ -146,6 +146,26 @@ struct CaptureCapabilities {
     static let unknown = CaptureCapabilities()
 }
 
+/// A zoom level that the camera interface offers, such as 0.5x, 1x, or 2x.
+struct ZoomLevel: Identifiable, Hashable {
+    /// The value to set on the capture device.
+    let videoZoomFactor: CGFloat
+    /// The value to show to a person.
+    let displayFactor: CGFloat
+    
+    var id: CGFloat { videoZoomFactor }
+    
+    /// A short text for the value, such as "0.5" or "2".
+    var label: String {
+        ZoomLevel.label(for: displayFactor)
+    }
+    
+    /// Returns a short text for a display zoom factor.
+    static func label(for displayFactor: CGFloat) -> String {
+        Double(displayFactor).formatted(.number.precision(.fractionLength(0...1)))
+    }
+}
+
 enum QualityPrioritization: Int, Identifiable, CaseIterable, CustomStringConvertible, Codable {
     var id: Self { self }
     case speed = 1
