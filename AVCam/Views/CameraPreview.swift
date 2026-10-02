@@ -7,19 +7,26 @@ A view that presents a video preview of the captured content.
 
 import SwiftUI
 @preconcurrency import AVFoundation
+import AVKit
 
 struct CameraPreview: UIViewRepresentable {
     
     private let source: PreviewSource
     
-    init(source: PreviewSource) {
+    // A closure to call when the directions that the cameras face change.
+    private let directionsHandler: @MainActor (CameraDirections) -> Void
+    
+    init(source: PreviewSource, onDirectionsChange directionsHandler: @escaping @MainActor (CameraDirections) -> Void = { _ in }) {
         self.source = source
+        self.directionsHandler = directionsHandler
     }
     
     func makeUIView(context: Context) -> PreviewView {
         let preview = PreviewView()
         // Connect the preview layer to the capture session.
         source.connect(to: preview)
+        // Report the directions that the cameras face in relation to the preview.
+        preview.observeCameraDirections(with: directionsHandler)
         return preview
     }
     
@@ -48,6 +55,25 @@ struct CameraPreview: UIViewRepresentable {
         
         var previewLayer: AVCaptureVideoPreviewLayer {
             layer as! AVCaptureVideoPreviewLayer
+        }
+        
+        // An object that reports the direction that each camera faces in relation to this view.
+        // The type of the property is `AnyObject`, because the coordinator class needs iOS 27.1.
+        private var directionCoordinator: AnyObject?
+        
+        /// Starts to observe the directions that the cameras face, and reports each change to the handler.
+        func observeCameraDirections(with handler: @escaping @MainActor (CameraDirections) -> Void) {
+            // Earlier systems don't have the coordinator. On those systems, the app uses the position of a camera.
+            guard #available(iOS 27.1, *) else { return }
+            directionCoordinator = AVCaptureDeviceDirectionCoordinator(view: self, deviceTypes: DeviceLookup.builtInCameraTypes) { directionMap in
+                // The coordinator calls this handler on the main actor, soon after its creation and after each change.
+                // A descriptor identifies a camera. Keep only the identifiers, which are safe to pass to the capture actor.
+                let directions = CameraDirections(forwardFacing: directionMap.forwardFacingDeviceDescriptors.map(\.uniqueID),
+                                                  backwardFacing: directionMap.backwardFacingDeviceDescriptors.map(\.uniqueID))
+                MainActor.assumeIsolated {
+                    handler(directions)
+                }
+            }
         }
         
         nonisolated func setSession(_ session: AVCaptureSession) {

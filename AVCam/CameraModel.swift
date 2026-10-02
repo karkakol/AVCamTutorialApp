@@ -121,6 +121,11 @@ final class CameraModel: Camera {
         }
     }
     
+    /// Tells the capture service the directions that the cameras face in relation to the preview.
+    func setCameraDirections(_ directions: CameraDirections) async {
+        await captureService.setCameraDirections(directions)
+    }
+    
     /// Selects the next available video device for capture.
     func switchVideoDevices() async {
         isSwitchingVideoDevices = true

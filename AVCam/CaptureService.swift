@@ -57,6 +57,12 @@ actor CaptureService {
     // An object the service uses to retrieve capture devices.
     private let deviceLookup = DeviceLookup()
     
+    // The directions that the cameras face in relation to the preview, if the system reports them.
+    private var cameraDirections: CameraDirections?
+    
+    // A Boolean value that indicates whether the person selected a camera that faces them.
+    private var isForwardFacingCameraSelected = false
+    
     // An object that monitors the state of the system-preferred camera.
     private let systemPreferredCamera = SystemPreferredCameraObserver()
     
@@ -181,6 +187,9 @@ actor CaptureService {
             updateCaptureCapabilities()
             
             isSetUp = true
+            
+            // The directions can arrive before the setup is complete. Apply them now.
+            applyCameraDirections()
         } catch {
             throw CameraError.setupFailed
         }
@@ -412,6 +421,9 @@ actor CaptureService {
         // Change the session's active capture device.
         changeCaptureDevice(to: nextDevice)
         
+        // Keep the direction of the selection, so that the app can follow it when the directions change.
+        isForwardFacingCameraSelected = cameraDirections?.forwardFacing.contains(nextDevice.uniqueID) ?? (nextDevice.position == .front)
+        
         // The app only calls this method in response to the user requesting to switch cameras.
         // Set the new selection as the user's preferred camera.
         AVCaptureDevice.userPreferredCamera = nextDevice
@@ -441,9 +453,64 @@ actor CaptureService {
             observeSubjectAreaChanges(of: device)
             // Update the service's advertised capabilities.
             updateCaptureCapabilities()
+            // A new input creates a new preview connection. Set its mirroring again.
+            updatePreviewMirroring()
         } catch {
             // Reconnect the existing camera on failure.
             captureSession.addInput(currentInput)
+        }
+    }
+    
+    // MARK: - Camera directions
+    
+    /// Stores the directions that the cameras face in relation to the preview.
+    ///
+    /// The app calls this method when the preview view reports new directions, for
+    /// example after a person opens or closes iPhone Duo.
+    func setCameraDirections(_ directions: CameraDirections) {
+        cameraDirections = directions
+        // Before the setup, the session has no camera. The setup applies the directions later.
+        guard isSetUp else { return }
+        applyCameraDirections()
+    }
+    
+    /// Changes the camera if the selected one no longer faces the selected direction.
+    private func applyCameraDirections() {
+        guard let directions = cameraDirections else { return }
+        let selectedID = currentDevice.uniqueID
+        // Only follow the cameras that the system reports a direction for. It reports no direction
+        // for an external camera, or for the virtual front camera, which the system moves by itself.
+        guard directions.forwardFacing.contains(selectedID) || directions.backwardFacing.contains(selectedID) else { return }
+        
+        // The cameras that face the direction that the person selected.
+        let candidates = isForwardFacingCameraSelected ? directions.forwardFacing : directions.backwardFacing
+        if !candidates.contains(selectedID), let device = deviceLookup.camera(withUniqueIDIn: candidates) {
+            logger.debug("Switching camera selection, because the selected camera changed its direction.")
+            changeCaptureDevice(to: device)
+        } else {
+            updatePreviewMirroring()
+        }
+    }
+    
+    /// Mirrors the preview when the position of the selected camera and its direction disagree.
+    private func updatePreviewMirroring() {
+        guard let directions = cameraDirections else { return }
+        let device = currentDevice
+        let isFacingForward = directions.forwardFacing.contains(device.uniqueID)
+        let isFacingBackward = directions.backwardFacing.contains(device.uniqueID)
+        let isFrontCamera = device.position == .front
+        
+        // The connection mirrors the preview of each camera with the front position by itself.
+        // Take over only when a back camera faces the person, or a front camera faces the scene.
+        guard (isFacingForward && !isFrontCamera) || (isFacingBackward && isFrontCamera) else { return }
+        
+        let connection = videoPreviewLayer.connection
+        Task { @MainActor in
+            // Assigning `isVideoMirrored` raises an exception when the connection doesn't support mirroring.
+            guard let connection, connection.isVideoMirroringSupported else { return }
+            // Assigning `isVideoMirrored` raises an exception while automatic adjustment stays on.
+            connection.automaticallyAdjustsVideoMirroring = false
+            connection.isVideoMirrored = isFacingForward
         }
     }
     

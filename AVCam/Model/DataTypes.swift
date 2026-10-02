@@ -146,6 +146,17 @@ struct CaptureCapabilities {
     static let unknown = CaptureCapabilities()
 }
 
+/// The cameras of the device, grouped by the direction that they face in relation to the camera preview.
+///
+/// On a device with one display, the front camera always faces the person and the back cameras
+/// always face the scene. On iPhone Duo, the direction of a camera changes when a person opens or closes the device.
+struct CameraDirections: Sendable, Equatable {
+    /// The unique identifiers of the cameras that face the person who looks at the preview.
+    let forwardFacing: [String]
+    /// The unique identifiers of the cameras that face the scene behind the preview.
+    let backwardFacing: [String]
+}
+
 /// A zoom level that the camera interface offers, such as 0.5x, 1x, or 2x.
 struct ZoomLevel: Identifiable, Hashable {
     /// The value to set on the capture device.

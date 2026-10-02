@@ -35,6 +35,28 @@ final class DeviceLookup {
         }
     }
     
+    /// The built-in camera types that the app captures from, in the order of preference.
+    static var builtInCameraTypes: [AVCaptureDevice.DeviceType] {
+        var types: [AVCaptureDevice.DeviceType] = [.builtInTripleCamera, .builtInDualWideCamera, .builtInDualCamera,
+                                                   .builtInWideAngleCamera, .builtInTrueDepthCamera]
+        // iPhone Duo has a physical front camera above each of its two displays.
+        if #available(iOS 27.1, *) {
+            types += [.builtInOuterUltraWideCamera, .builtInInnerUltraWideCamera]
+        }
+        return types
+    }
+    
+    /// Returns the preferred camera from a list of unique identifiers.
+    func camera(withUniqueIDIn identifiers: [String]) -> AVCaptureDevice? {
+        // A camera can go away at any time, so an identifier can be without a device.
+        let devices = identifiers.compactMap { AVCaptureDevice(uniqueID: $0) }
+        let types = DeviceLookup.builtInCameraTypes
+        // Select the device with the type that comes first in the order of preference.
+        return devices.min {
+            (types.firstIndex(of: $0.deviceType) ?? types.endIndex) < (types.firstIndex(of: $1.deviceType) ?? types.endIndex)
+        }
+    }
+    
     /// Returns the system-preferred camera for the host system.
     var defaultCamera: AVCaptureDevice {
         get throws {

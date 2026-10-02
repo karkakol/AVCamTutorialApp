@@ -41,6 +41,9 @@ protocol Camera: AnyObject, SendableMetatype {
     /// Switches between video devices available on the host system.
     func switchVideoDevices() async
     
+    /// Tells the camera the directions that the cameras of the device face in relation to the preview.
+    func setCameraDirections(_ directions: CameraDirections) async
+    
     /// A Boolean value that indicates whether the camera is currently switching video devices.
     var isSwitchingVideoDevices: Bool { get }
     

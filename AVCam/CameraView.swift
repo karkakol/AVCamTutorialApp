@@ -20,6 +20,9 @@ struct CameraView<CameraModel: Camera>: PlatformView {
     // The direction a person swipes on the camera preview or mode selector.
     @State var swipeDirection = SwipeDirection.left
     
+    // The difference between the safe area insets at the two sides of the screen.
+    @State private var sideInsetDifference = CGFloat.zero
+    
     // The zoom factor at the start of a pinch gesture.
     @State private var pinchStartFactor: CGFloat?
 
@@ -28,7 +31,10 @@ struct CameraView<CameraModel: Camera>: PlatformView {
             // A container view that manages the placement of the preview.
             PreviewContainer(camera: camera) {
                 // A view that provides a preview of the captured content.
-                CameraPreview(source: camera.previewSource)
+                CameraPreview(source: camera.previewSource) { directions in
+                    // Tell the camera which way each camera faces now.
+                    Task { await camera.setCameraDirections(directions) }
+                }
                     // Handle capture events from device hardware buttons.
                     .onCameraCaptureEvent(defaultSoundDisabled: true) { event in
                         if event.phase == .ended {
@@ -70,6 +76,16 @@ struct CameraView<CameraModel: Camera>: PlatformView {
             }
             // The main camera user interface.
             CameraUI(camera: camera, swipeDirection: $swipeDirection)
+        }
+        // iPhone Duo shows its status items in an area at one side of the display. The safe area
+        // leaves that area out, so the interface isn't in the center of the display. Use the full
+        // width, and give both sides the same space.
+        .padding(.horizontal, sideInsetDifference / 2)
+        .ignoresSafeArea(.container, edges: .horizontal)
+        .onGeometryChange(for: CGFloat.self) { proxy in
+            abs(proxy.safeAreaInsets.trailing - proxy.safeAreaInsets.leading)
+        } action: { difference in
+            sideInsetDifference = difference
         }
     }
 

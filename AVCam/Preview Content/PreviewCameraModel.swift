@@ -102,4 +102,8 @@ class PreviewCameraModel: Camera {
     func setZoom(displayFactor: CGFloat) {
         displayZoomFactor = displayFactor
     }
+    
+    func setCameraDirections(_ directions: CameraDirections) {
+        logger.debug("Camera directions aren't implemented in PreviewCamera.")
+    }
 }
