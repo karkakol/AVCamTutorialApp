@@ -83,7 +83,9 @@ struct CameraView<CameraModel: Camera>: PlatformView {
         .padding(.horizontal, sideInsetDifference / 2)
         .ignoresSafeArea(.container, edges: .horizontal)
         .onGeometryChange(for: CGFloat.self) { proxy in
-            abs(proxy.safeAreaInsets.trailing - proxy.safeAreaInsets.leading)
+            // Round the value. A layout pass can change an inset by a very small amount, and
+            // a new value starts a new layout pass.
+            abs(proxy.safeAreaInsets.trailing - proxy.safeAreaInsets.leading).rounded()
         } action: { difference in
             sideInsetDifference = difference
         }
