@@ -144,8 +144,8 @@ final class PhotoCapture: OutputService {
                     isLivePhoto = activity.isLivePhoto
                     // Increment or decrement as appropriate.
                     livePhotoCount += isLivePhoto ? 1 : -1
-                    if livePhotoCount > 1 {
-                        /// Set `isLivePhoto` to `true` when there are concurrent Live Photos in progress.
+                    if livePhotoCount > 0 {
+                        /// Set `isLivePhoto` to `true` while another Live Photo is still in progress.
                         /// This prevents the "Live" badge in the UI from flickering.
                         currentActivity = .photoCapture(willCapture: activity.willCapture, isLivePhoto: true)
                     }

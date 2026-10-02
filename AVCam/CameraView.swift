@@ -36,17 +36,22 @@ struct CameraView<CameraModel: Camera>: PlatformView {
                             switch camera.captureMode {
                             case .photo:
                                 sound = .cameraShutter
-                                // Capture a photo when pressing a hardware button.
-                                await camera.capturePhoto()
                             case .video:
                                 sound = camera.captureActivity.isRecording ?
                                     .endVideoRecording : .beginVideoRecording
-                                // Toggle video recording when pressing a hardware button.
-                                await camera.toggleRecording()
                             }
-                            // Play a sound when capturing by clicking an AirPods stem.
+                            // Play a sound when capturing by clicking an AirPods stem. Play it before
+                            // the capture, so that the person hears it at the moment of the click.
                             if event.shouldPlaySound {
                                 event.play(sound)
+                            }
+                            switch camera.captureMode {
+                            case .photo:
+                                // Capture a photo when pressing a hardware button.
+                                await camera.capturePhoto()
+                            case .video:
+                                // Toggle video recording when pressing a hardware button.
+                                await camera.toggleRecording()
                             }
                         }
                     }

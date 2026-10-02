@@ -8,6 +8,10 @@ An object that manages a movie capture output to record videos.
 import AVFoundation
 import Combine
 
+enum MovieCaptureError: Error {
+    case notRecording
+}
+
 /// An object that manages a movie capture output to record videos.
 final class MovieCapture: OutputService {
     
@@ -29,6 +33,17 @@ final class MovieCapture: OutputService {
     // A Boolean value that indicates whether the currently selected camera's
     // active format supports HDR.
     private var isHDRSupported = false
+    
+    /// A stream of the results of recordings that end without a request from the app,
+    /// for example because of an interruption or a full disk.
+    let unexpectedResults: AsyncStream<Result<Movie, Error>>
+    private let unexpectedResultsContinuation: AsyncStream<Result<Movie, Error>>.Continuation
+    
+    init() {
+        let (unexpectedResults, continuation) = AsyncStream.makeStream(of: Result<Movie, Error>.self)
+        self.unexpectedResults = unexpectedResults
+        self.unexpectedResultsContinuation = continuation
+    }
 
     // MARK: - Capturing a movie
 
@@ -41,6 +56,13 @@ final class MovieCapture: OutputService {
         startMonitoringDuration()
 
         let delegate = MovieCaptureDelegate()
+        // Handle a recording that ends before the app stops it.
+        delegate.unexpectedFinishHandler = { [weak self] result in
+            guard let self else { return }
+            stopMonitoringDuration()
+            self.delegate = nil
+            unexpectedResultsContinuation.yield(result)
+        }
         self.delegate = delegate
         movieOutput.startRecording(to: URL.movieFileURL, recordingDelegate: delegate)
     }
@@ -50,8 +72,14 @@ final class MovieCapture: OutputService {
     func stopRecording() async throws -> Movie {
         // Use a continuation to adapt the delegate-based capture API to an async interface.
         return try await withCheckedThrowingContinuation { continuation in
+            guard let delegate, movieOutput.isRecording else {
+                // The output isn't recording, so the delegate receives no callback. Don't wait for one.
+                stopMonitoringDuration()
+                continuation.resume(throwing: MovieCaptureError.notRecording)
+                return
+            }
             // Set the continuation on the delegate to handle the capture result.
-            delegate?.continuation = continuation
+            delegate.continuation = continuation
             
             /// Stops recording, which causes the output to call the `MovieCaptureDelegate` object.
             movieOutput.stopRecording()
@@ -65,14 +93,35 @@ final class MovieCapture: OutputService {
         
         var continuation: CheckedContinuation<Movie, Error>?
         
+        /// A closure to call when the recording ends before the app stops it.
+        var unexpectedFinishHandler: ((Result<Movie, Error>) -> Void)?
+        
         func fileOutput(_ output: AVCaptureFileOutput, didFinishRecordingTo outputFileURL: URL, from connections: [AVCaptureConnection], error: Error?) {
-            if let error {
-                // If an error occurs, throw it to the caller.
-                continuation?.resume(throwing: error)
+            let result: Result<Movie, Error>
+            if let error, !isMovieUsable(after: error) {
+                // The movie file isn't usable. Report the error.
+                result = .failure(error)
             } else {
-                // Return a new movie object.
-                continuation?.resume(returning: Movie(url: outputFileURL))
+                // The movie file is complete. Report a new movie object.
+                result = .success(Movie(url: outputFileURL))
             }
+            
+            if let continuation {
+                // The app asked to stop the recording. Return the result to the caller.
+                continuation.resume(with: result)
+            } else {
+                // The recording ended by itself. Nobody waits for the result, so report it separately.
+                unexpectedFinishHandler?(result)
+            }
+        }
+        
+        /// Returns a Boolean value that indicates whether the output wrote a complete movie file although an error occurred.
+        ///
+        /// A recording can stop with an error, for example when it reaches a size limit or
+        /// when the disk is full, and still produce a file that plays.
+        private func isMovieUsable(after error: Error) -> Bool {
+            let userInfo = (error as NSError).userInfo
+            return userInfo[AVErrorRecordingSuccessfullyFinishedKey] as? Bool ?? false
         }
     }
     

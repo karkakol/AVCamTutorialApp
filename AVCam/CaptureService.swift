@@ -33,6 +33,9 @@ actor CaptureService {
     /// A type that connects a preview destination with the capture session.
     nonisolated let previewSource: PreviewSource
     
+    /// A stream of the results of recordings that end without a request from the app.
+    nonisolated let unexpectedRecordingResults: AsyncStream<Result<Movie, Error>>
+    
     // The app's capture session.
     private let captureSession = AVCaptureSession()
     
@@ -87,6 +90,8 @@ actor CaptureService {
     init() {
         // Create a source object to connect the preview view with the capture session.
         previewSource = DefaultPreviewSource(session: captureSession)
+        // Pass on the stream of the movie capture service.
+        unexpectedRecordingResults = movieCapture.unexpectedResults
     }
     
     // MARK: - Authorization
@@ -370,6 +375,8 @@ actor CaptureService {
         case .video:
             captureSession.sessionPreset = .high
             try addOutput(movieCapture.output)
+            // Adding the output creates a new connection. Give it the current capture rotation angle.
+            updateCaptureRotation(rotationCoordinator.videoRotationAngleForHorizonLevelCapture)
             if isHDRVideoEnabled {
                 setHDRVideoEnabled(true)
             }

@@ -283,6 +283,18 @@ final class CameraModel: Camera {
         }
         
         Task {
+            // Await the results of recordings that end without a request from the app.
+            for await result in captureService.unexpectedRecordingResults {
+                do {
+                    // Save the movie, if the recording produced one.
+                    try await mediaLibrary.save(movie: result.get())
+                } catch {
+                    self.error = error
+                }
+            }
+        }
+        
+        Task {
             // Await new zoom levels from the capture service, for example after a camera switch.
             for await zoomLevels in await captureService.$zoomLevels.values {
                 self.zoomLevels = zoomLevels
