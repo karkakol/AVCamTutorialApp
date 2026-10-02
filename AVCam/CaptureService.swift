@@ -188,6 +188,8 @@ actor CaptureService {
             
             isSetUp = true
             
+            // The app can start with a front camera, for example when a person selected it in the last session.
+            updateSelectedDirection(for: defaultCamera)
             // The directions can arrive before the setup is complete. Apply them now.
             applyCameraDirections()
         } catch {
@@ -422,7 +424,7 @@ actor CaptureService {
         changeCaptureDevice(to: nextDevice)
         
         // Keep the direction of the selection, so that the app can follow it when the directions change.
-        isForwardFacingCameraSelected = cameraDirections?.forwardFacing.contains(nextDevice.uniqueID) ?? (nextDevice.position == .front)
+        updateSelectedDirection(for: nextDevice)
         
         // The app only calls this method in response to the user requesting to switch cameras.
         // Set the new selection as the user's preferred camera.
@@ -474,6 +476,12 @@ actor CaptureService {
         applyCameraDirections()
     }
     
+    /// Stores the direction that the specified camera faces as the direction that the person selected.
+    private func updateSelectedDirection(for device: AVCaptureDevice) {
+        // Without a report from the system, use the position of the camera.
+        isForwardFacingCameraSelected = cameraDirections?.forwardFacing.contains(device.uniqueID) ?? (device.position == .front)
+    }
+    
     /// Changes the camera if the selected one no longer faces the selected direction.
     private func applyCameraDirections() {
         guard let directions = cameraDirections else { return }
@@ -502,15 +510,20 @@ actor CaptureService {
         
         // The connection mirrors the preview of each camera with the front position by itself.
         // Take over only when a back camera faces the person, or a front camera faces the scene.
-        guard (isFacingForward && !isFrontCamera) || (isFacingBackward && isFrontCamera) else { return }
+        let needsOverride = (isFacingForward && !isFrontCamera) || (isFacingBackward && isFrontCamera)
         
         let connection = videoPreviewLayer.connection
         Task { @MainActor in
             // Assigning `isVideoMirrored` raises an exception when the connection doesn't support mirroring.
             guard let connection, connection.isVideoMirroringSupported else { return }
-            // Assigning `isVideoMirrored` raises an exception while automatic adjustment stays on.
-            connection.automaticallyAdjustsVideoMirroring = false
-            connection.isVideoMirrored = isFacingForward
+            if needsOverride {
+                // Assigning `isVideoMirrored` raises an exception while automatic adjustment stays on.
+                connection.automaticallyAdjustsVideoMirroring = false
+                connection.isVideoMirrored = isFacingForward
+            } else {
+                // Position and direction agree again. Give the mirroring back to the connection.
+                connection.automaticallyAdjustsVideoMirroring = true
+            }
         }
     }
     
