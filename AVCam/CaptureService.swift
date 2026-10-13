@@ -19,7 +19,7 @@ actor CaptureService {
     private let captureSession = AVCaptureSession()
     
     // A serial dispatch queue to use for capture control actions.
-    private let sessionQueue = DispatchSerialQueue(label: "com.example.AVCam.sessionQueue")
+    private let sessionQueue = DispatchSerialQueue(label: "com.karolkakol.AVCam.sessionQueue")
     
     // Sets the session queue as the actor's executor.
     nonisolated var unownedExecutor: UnownedSerialExecutor {
