@@ -11,7 +11,7 @@ import AppIntents
 
 struct AVCamControlCenterExtension: ControlWidget {
     
-    static var kind = "com.example.AVCam.AVCamControlCenterExtension.ControlButton"
+    static var kind = "com.karolkakol.AVCam.AVCamControlCenterExtension.ControlButton"
     static var displayName: LocalizedStringResource = "Open AVCam"
     static var description: LocalizedStringResource = "Launch AVCam app."
     
