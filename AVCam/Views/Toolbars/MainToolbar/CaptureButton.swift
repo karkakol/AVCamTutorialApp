@@ -44,6 +44,9 @@ struct CaptureButton<CameraModel: Camera>: View {
                     await camera.toggleRecording()
                 }
             }
+        case .dual:
+            // The dual mode gets its capture button in the next chapter.
+            EmptyView()
         }
     }
 }

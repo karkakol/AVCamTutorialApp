@@ -30,7 +30,8 @@ struct CameraView<CameraModel: Camera>: PlatformView {
         ZStack {
             // A container view that manages the placement of the preview.
             PreviewContainer(camera: camera) {
-                // A view that provides a preview of the captured content.
+                // A view that provides a preview of the captured content. The capture service needs its
+                // preview connection in every mode, so the view stays in place when the dual mode covers it.
                 CameraPreview(source: camera.previewSource) { directions in
                     // Tell the camera which way each camera faces now.
                     Task { await camera.setCameraDirections(directions) }
@@ -45,6 +46,9 @@ struct CameraView<CameraModel: Camera>: PlatformView {
                             case .video:
                                 sound = camera.captureActivity.isRecording ?
                                     .endVideoRecording : .beginVideoRecording
+                            case .dual:
+                                // The dual mode captures nothing yet.
+                                return
                             }
                             // Play a sound when capturing by clicking an AirPods stem. Play it before
                             // the capture, so that the person hears it at the moment of the click.
@@ -58,6 +62,8 @@ struct CameraView<CameraModel: Camera>: PlatformView {
                             case .video:
                                 // Toggle video recording when pressing a hardware button.
                                 await camera.toggleRecording()
+                            case .dual:
+                                break
                             }
                         }
                     }
@@ -73,6 +79,14 @@ struct CameraView<CameraModel: Camera>: PlatformView {
                     /// starts, and then immediately changes to `false`. Use this change to
                     /// flash the screen to provide visual feedback when capturing photos.
                     .opacity(camera.shouldFlashScreen ? 0 : 1)
+                    // In the dual mode, a view that shows both cameras covers the single preview.
+                    .overlay {
+                        if camera.captureMode == .dual {
+                            DualCameraPreview(source: camera.dualPreviewSource)
+                                // Switch between capture modes by swiping left and right.
+                                .simultaneousGesture(swipeGesture)
+                        }
+                    }
             }
             // The main camera user interface.
             CameraUI(camera: camera, swipeDirection: $swipeDirection)

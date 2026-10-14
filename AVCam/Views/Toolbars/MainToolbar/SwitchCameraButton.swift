@@ -23,6 +23,8 @@ struct SwitchCameraButton<CameraModel: Camera>: View {
         .buttonStyle(DefaultButtonStyle(size: .large))
         .frame(width: largeButtonSize.width, height: largeButtonSize.height)
         .disabled(camera.captureActivity.isRecording)
+        // The dual mode shows both cameras, so there is nothing to switch.
+        .disabled(camera.captureMode == .dual)
         .allowsHitTesting(!camera.isSwitchingVideoDevices)
     }
 }

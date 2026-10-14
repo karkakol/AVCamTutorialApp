@@ -27,6 +27,8 @@ struct FeaturesToolbar<CameraModel: Camera>: PlatformView {
                 if camera.isHDRVideoSupported {
                     hdrButton
                 }
+            case .dual:
+                EmptyView()
             }
         }
         .buttonStyle(DefaultButtonStyle(size: isRegularSize ? .large : .small))

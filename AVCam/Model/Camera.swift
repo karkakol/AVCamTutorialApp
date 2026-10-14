@@ -29,8 +29,14 @@ protocol Camera: AnyObject, SendableMetatype {
     /// Starts the camera capture pipeline.
     func start() async
 
-    /// The capture mode, which can be photo or video.
+    /// The capture mode, which can be photo, video, or dual.
     var captureMode: CaptureMode { get set }
+    
+    /// A Boolean value that indicates whether the device can capture from two cameras at the same time.
+    var isDualCaptureSupported: Bool { get }
+    
+    /// The source of video content for the two preview views of the dual mode.
+    var dualPreviewSource: DualPreviewSource { get }
     
     /// A Boolean value that indicates whether the camera is currently switching capture modes.
     var isSwitchingModes: Bool { get }

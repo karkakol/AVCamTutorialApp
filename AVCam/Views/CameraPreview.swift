@@ -101,6 +101,32 @@ protocol PreviewSource: Sendable {
 protocol PreviewTarget {
     // Sets the capture session on the destination.
     func setSession(_ session: AVCaptureSession)
+    // The layer that presents the captured content.
+    @MainActor var previewLayer: AVCaptureVideoPreviewLayer { get }
+}
+
+/// A protocol that connects the two preview views of the dual mode with the multi-camera session.
+protocol DualPreviewSource: Sendable {
+    // Connects the preview views for the back camera and the front camera to this source.
+    @MainActor func connect(back: PreviewTarget, front: PreviewTarget)
+}
+
+/// The app's default `DualPreviewSource` implementation.
+struct DefaultDualPreviewSource: DualPreviewSource {
+    
+    private let captureService: CaptureService
+    
+    init(captureService: CaptureService) {
+        self.captureService = captureService
+    }
+    
+    @MainActor
+    func connect(back: PreviewTarget, front: PreviewTarget) {
+        let backLayer = back.previewLayer
+        let frontLayer = front.previewLayer
+        // The capture service connects the layers on its own queue.
+        Task { await captureService.attachDualPreview(back: backLayer, front: frontLayer) }
+    }
 }
 
 /// The app's default `PreviewSource` implementation.

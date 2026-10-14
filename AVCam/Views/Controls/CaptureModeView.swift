@@ -18,18 +18,22 @@ struct CaptureModeView<CameraModel: Camera>: View {
         _direction = direction
     }
     
+    /// The modes that this device offers. The dual mode needs a device that can run two cameras.
+    private var modes: [CaptureMode] {
+        CaptureMode.allCases.filter { $0 != .dual || camera.isDualCaptureSupported }
+    }
+    
     var body: some View {
         Picker("Capture Mode", selection: $camera.captureMode) {
-            ForEach(CaptureMode.allCases) {
+            ForEach(modes) {
                 Image(systemName: $0.systemName)
                     .tag($0.rawValue)
             }
         }
-        .frame(width: 180)
+        .frame(width: modes.count > 2 ? 240 : 180)
         .pickerStyle(.segmented)
         .disabled(camera.captureActivity.isRecording)
         .onChange(of: direction) { _, _ in
-            let modes = CaptureMode.allCases
             let selectedIndex = modes.firstIndex(of: camera.captureMode) ?? -1
             // Increment the selected index when swiping right.
             let increment = direction == .right

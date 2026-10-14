@@ -69,6 +69,8 @@ enum CaptureMode: String, Identifiable, CaseIterable, Codable {
     case photo
     /// A mode that enables video capture.
     case video
+    /// A mode that shows the back camera and the front camera at the same time.
+    case dual
     
     var systemName: String {
         switch self {
@@ -76,6 +78,8 @@ enum CaptureMode: String, Identifiable, CaseIterable, Codable {
             "camera.fill"
         case .video:
             "video.fill"
+        case .dual:
+            "rectangle.on.rectangle"
         }
     }
 }

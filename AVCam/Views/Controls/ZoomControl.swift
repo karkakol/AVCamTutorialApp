@@ -27,8 +27,8 @@ struct ZoomControl<CameraModel: Camera>: View {
         .padding(4)
         .background(.black.opacity(0.25), in: Capsule())
         .animation(.easeInOut(duration: 0.2), value: selectedLevel)
-        // A camera with one zoom level needs no control.
-        .opacity(camera.zoomLevels.count > 1 ? 1 : 0)
+        // A camera with one zoom level needs no control. The dual mode has no zoom.
+        .opacity(camera.zoomLevels.count > 1 && camera.captureMode != .dual ? 1 : 0)
         // Hide the zoom control when a person interacts with capture controls.
         .opacity(camera.prefersMinimizedUI ? 0 : 1)
         // Hide it until the capture session runs, using a custom modifier.

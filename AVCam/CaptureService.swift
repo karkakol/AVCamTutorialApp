@@ -36,6 +36,11 @@ actor CaptureService {
     /// A stream of the results of recordings that end without a request from the app.
     nonisolated let unexpectedRecordingResults: AsyncStream<Result<Movie, Error>>
     
+    /// A type that connects the two preview views of the dual mode with the multi-camera session.
+    nonisolated var dualPreviewSource: DualPreviewSource {
+        DefaultDualPreviewSource(captureService: self)
+    }
+    
     // The app's capture session.
     private let captureSession = AVCaptureSession()
     
@@ -44,6 +49,12 @@ actor CaptureService {
     
     // An object that manages the app's video capture behavior.
     private let movieCapture = MovieCapture()
+    
+    // An object that manages the multi-camera session of the dual mode.
+    private let multiCamCapture = MultiCamCapture()
+    
+    // The preview layers of the dual mode, as soon as the dual preview view exists.
+    private var dualPreviewLayers: (back: AVCaptureVideoPreviewLayer, front: AVCaptureVideoPreviewLayer)?
     
     // An internal collection of output services.
     private var outputServices: [any OutputService] { [photoCapture, movieCapture] }
@@ -120,15 +131,19 @@ actor CaptureService {
     
     // MARK: - Capture session life cycle
     func start(with state: CameraState) async throws {
-        // Set initial operating state.
-        captureMode = state.captureMode
+        // Set initial operating state. A device that can't run two cameras starts in photo mode.
+        captureMode = state.captureMode == .dual && !MultiCamCapture.isSupported ? .photo : state.captureMode
         isHDRVideoEnabled = state.isVideoHDREnabled
         
         // Exit early if not authorized or the session is already running.
         guard await isAuthorized, !captureSession.isRunning else { return }
-        // Configure the session and start it.
+        // Configure the session and start it. In the dual mode, the multi-camera session runs instead.
         try setUpSession()
-        captureSession.startRunning()
+        if captureMode == .dual {
+            startDualCaptureIfNeeded()
+        } else {
+            captureSession.startRunning()
+        }
     }
     
     // MARK: - Capture setup
@@ -155,7 +170,7 @@ actor CaptureService {
             try addInput(for: defaultMic)
 
             // Configure the session preset based on the current capture mode.
-            captureSession.sessionPreset = captureMode == .photo ? .photo : .high
+            captureSession.sessionPreset = captureMode == .video ? .high : .photo
 
             // Deferred start brings up the preview first, and prepares the capture outputs a moment
             // later. An app that links the iOS 26 SDK gets this behavior by default; these
@@ -370,12 +385,33 @@ actor CaptureService {
     ///
     /// - Parameter `captureMode`: The capture mode to enable.
     func setCaptureMode(_ captureMode: CaptureMode) throws {
+        let previousMode = self.captureMode
         // Update the internal capture mode value before performing the session configuration.
         self.captureMode = captureMode
         
+        if captureMode == .dual {
+            // Two sessions can't run at the same time. Stop the single-camera session, then start the multi-camera session.
+            captureSession.stopRunning()
+            startDualCaptureIfNeeded()
+            updateCaptureCapabilities()
+            return
+        }
+        
+        // Stop the multi-camera session before the single-camera session starts again.
+        let restartsSession = previousMode == .dual
+        if restartsSession {
+            multiCamCapture.stop()
+        }
+        
         // Change the configuration atomically.
         captureSession.beginConfiguration()
-        defer { captureSession.commitConfiguration() }
+        defer {
+            captureSession.commitConfiguration()
+            // Start the session again after the configuration is committed.
+            if restartsSession {
+                captureSession.startRunning()
+            }
+        }
         
         // Configure the capture session for the selected capture mode.
         switch captureMode {
@@ -391,12 +427,45 @@ actor CaptureService {
             if isHDRVideoEnabled {
                 setHDRVideoEnabled(true)
             }
+        case .dual:
+            // The dual mode returns above.
+            break
         }
 
         // Update the advertised capabilities after reconfiguration.
         updateCaptureCapabilities()
         // A new session preset can select a new device format. Create the zoom levels again.
         configureZoom(for: currentDevice)
+    }
+    
+    // MARK: - Dual capture
+    
+    /// Stores the preview layers of the dual mode, and starts the multi-camera session if the dual mode is active.
+    ///
+    /// The app calls this method when the dual preview view appears.
+    func attachDualPreview(back: AVCaptureVideoPreviewLayer, front: AVCaptureVideoPreviewLayer) {
+        dualPreviewLayers = (back, front)
+        startDualCaptureIfNeeded()
+    }
+    
+    /// Configures and starts the multi-camera session when the dual mode is active and the preview layers exist.
+    private func startDualCaptureIfNeeded() {
+        guard captureMode == .dual, let layers = dualPreviewLayers, MultiCamCapture.isSupported else { return }
+        let cameras = deviceLookup.cameras
+        guard let backCamera = cameras.first(where: { $0.position == .back }),
+              let frontCamera = cameras.first(where: { $0.position == .front }) else {
+            logger.error("The dual mode needs a back camera and a front camera.")
+            return
+        }
+        do {
+            try multiCamCapture.configure(backCamera: backCamera, frontCamera: frontCamera,
+                                          backPreview: layers.back, frontPreview: layers.front)
+        } catch {
+            logger.error("Unable to configure the multi-camera session: \(error)")
+            return
+        }
+        multiCamCapture.start()
+        logger.info("Dual capture costs: hardware \(self.multiCamCapture.hardwareCost), system pressure \(self.multiCamCapture.systemPressureCost)")
     }
     
     // MARK: - Device selection
@@ -709,6 +778,8 @@ actor CaptureService {
             captureCapabilities = photoCapture.capabilities
         case .video:
             captureCapabilities = movieCapture.capabilities
+        case .dual:
+            captureCapabilities = .unknown
         }
     }
     

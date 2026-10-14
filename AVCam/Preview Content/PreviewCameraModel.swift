@@ -35,6 +35,15 @@ class PreviewCameraModel: Camera {
     
     let previewSource: PreviewSource = PreviewSourceStub()
     
+    struct DualPreviewSourceStub: DualPreviewSource {
+        // Stubbed out for test purposes.
+        func connect(back: PreviewTarget, front: PreviewTarget) {}
+    }
+    
+    let dualPreviewSource: DualPreviewSource = DualPreviewSourceStub()
+    
+    let isDualCaptureSupported = true
+    
     private(set) var status = CameraStatus.unknown
     private(set) var captureActivity = CaptureActivity.idle
     var captureMode = CaptureMode.photo {
@@ -88,6 +97,8 @@ class PreviewCameraModel: Camera {
         case .video:
             return CaptureCapabilities(isLivePhotoCaptureSupported: false,
                                        isHDRSupported: true)
+        case .dual:
+            return CaptureCapabilities()
         }
     }
     

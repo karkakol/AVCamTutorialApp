@@ -56,6 +56,12 @@ final class CameraModel: Camera {
     /// An object that provides the connection between the capture session and the video preview layer.
     var previewSource: PreviewSource { captureService.previewSource }
     
+    /// An object that connects the two preview views of the dual mode with the multi-camera session.
+    var dualPreviewSource: DualPreviewSource { captureService.dualPreviewSource }
+    
+    /// A Boolean value that indicates whether the device can capture from two cameras at the same time.
+    let isDualCaptureSupported = MultiCamCapture.isSupported
+    
     /// A Boolean that indicates whether the camera supports HDR video recording.
     private(set) var isHDRVideoSupported = false
     
