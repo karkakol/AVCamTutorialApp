@@ -6,13 +6,8 @@
 	objectVersion = 110;
 	objects = {
 
-/* Begin PBXBuildFile section */
-		D2518E78307D2CFC0024AB7B /* CameraView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2518E77307D2CFC0024AB7B /* CameraView.swift */; };
-/* End PBXBuildFile section */
-
 /* Begin PBXFileReference section */
 		5E81A45D3089F2A300B7D214 /* AVCam.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AVCam.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		D2518E77307D2CFC0024AB7B /* CameraView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -48,7 +43,6 @@
 		5E81A4543089F2A300B7D214 = {
 			isa = PBXGroup;
 			children = (
-				D2518E77307D2CFC0024AB7B /* CameraView.swift */,
 				5E81A45F3089F2A300B7D214 /* AVCam */,
 				5E81A45E3089F2A300B7D214 /* Products */,
 			);
@@ -129,7 +123,6 @@
 		5E81A4593089F2A300B7D214 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			files = (
-				D2518E78307D2CFC0024AB7B /* CameraView.swift in Sources */,
 			);
 		};
 /* End PBXSourcesBuildPhase section */
