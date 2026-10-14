@@ -47,8 +47,8 @@ struct CameraView<CameraModel: Camera>: PlatformView {
                                 sound = camera.captureActivity.isRecording ?
                                     .endVideoRecording : .beginVideoRecording
                             case .dual:
-                                // The dual mode captures nothing yet.
-                                return
+                                sound = camera.captureActivity.isRecording ?
+                                    .endVideoRecording : .beginVideoRecording
                             }
                             // Play a sound when capturing by clicking an AirPods stem. Play it before
                             // the capture, so that the person hears it at the moment of the click.
@@ -63,7 +63,8 @@ struct CameraView<CameraModel: Camera>: PlatformView {
                                 // Toggle video recording when pressing a hardware button.
                                 await camera.toggleRecording()
                             case .dual:
-                                break
+                                // The dual mode records a movie, like the video mode.
+                                await camera.toggleRecording()
                             }
                         }
                     }

@@ -6,6 +6,7 @@ A Camera implementation to use when working with SwiftUI previews.
 */
 
 import Foundation
+import AVFoundation
 import SwiftUI
 
 @Observable
@@ -38,6 +39,7 @@ class PreviewCameraModel: Camera {
     struct DualPreviewSourceStub: DualPreviewSource {
         // Stubbed out for test purposes.
         func connect(back: PreviewTarget, front: PreviewTarget) {}
+        func setSmallPicture(_ position: AVCaptureDevice.Position) {}
     }
     
     let dualPreviewSource: DualPreviewSource = DualPreviewSourceStub()

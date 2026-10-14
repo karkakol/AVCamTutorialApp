@@ -25,8 +25,9 @@ struct DualCameraPreview: View {
     var body: some View {
         DualPreviewViews(source: source, smallPicture: smallPicture)
             .onTapGesture {
-                // Exchange the full picture and the small picture.
+                // Exchange the full picture and the small picture, on the screen and in the recording.
                 smallPicture = smallPicture == .front ? .back : .front
+                source.setSmallPicture(smallPicture)
             }
     }
 }

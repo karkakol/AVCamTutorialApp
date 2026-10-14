@@ -38,15 +38,13 @@ struct CaptureButton<CameraModel: Camera>: View {
                     await camera.capturePhoto()
                 }
             }
-        case .video:
+        case .video, .dual:
+            // The dual mode records a movie too, so it uses the same button.
             MovieCaptureButton(isRecording: $isRecording) { _ in
                 Task {
                     await camera.toggleRecording()
                 }
             }
-        case .dual:
-            // The dual mode gets its capture button in the next chapter.
-            EmptyView()
         }
     }
 }

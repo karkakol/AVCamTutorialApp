@@ -448,6 +448,11 @@ actor CaptureService {
         startDualCaptureIfNeeded()
     }
     
+    /// Tells the dual recorder which camera the small picture shows.
+    func setDualSmallPicture(_ position: AVCaptureDevice.Position) {
+        multiCamCapture.setSmallPicture(position)
+    }
+    
     /// Configures and starts the multi-camera session when the dual mode is active and the preview layers exist.
     private func startDualCaptureIfNeeded() {
         guard captureMode == .dual, let layers = dualPreviewLayers, MultiCamCapture.isSupported else { return }
@@ -458,8 +463,12 @@ actor CaptureService {
             return
         }
         do {
-            try multiCamCapture.configure(backCamera: backCamera, frontCamera: frontCamera,
+            // A device without a microphone records a movie without sound.
+            let microphone = try? deviceLookup.defaultMic
+            try multiCamCapture.configure(backCamera: backCamera, frontCamera: frontCamera, microphone: microphone,
                                           backPreview: layers.back, frontPreview: layers.front)
+            // Report the recording state of the dual recorder like the other outputs.
+            observeDualRecorder()
         } catch {
             logger.error("Unable to configure the multi-camera session: \(error)")
             return
@@ -734,12 +743,24 @@ actor CaptureService {
     /// Starts recording video. The video records until the user stops recording,
     /// which calls the following `stopRecording()` method.
     func startRecording() {
+        if captureMode == .dual {
+            // The dual mode records the mixed pictures of the two cameras.
+            do {
+                try multiCamCapture.startRecording()
+            } catch {
+                logger.error("Unable to start the dual recording: \(error)")
+            }
+            return
+        }
         movieCapture.startRecording()
     }
 
     /// Stops the recording and returns the captured movie.
     func stopRecording() async throws -> Movie {
-        try await movieCapture.stopRecording()
+        if captureMode == .dual {
+            return try await multiCamCapture.stopRecording()
+        }
+        return try await movieCapture.stopRecording()
     }
 
     /// Sets whether the app captures HDR video.
@@ -790,6 +811,15 @@ actor CaptureService {
             .assign(to: &$captureActivity)
         photoCapture.$captureReadiness
             .assign(to: &$captureReadiness)
+    }
+    
+    /// Forward the `captureActivity` values of the dual recorder, which exists after the multi-camera session is configured.
+    private func observeDualRecorder() {
+        guard let recorder = multiCamCapture.recorder else { return }
+        recorder.$captureActivity
+            // The recorder reports from the data output queue. Deliver the values in order on the session queue.
+            .receive(on: sessionQueue)
+            .assign(to: &$captureActivity)
     }
     
     /// Observe when capture control enter and exit a fullscreen appearance.

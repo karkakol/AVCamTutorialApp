@@ -46,7 +46,9 @@ struct CameraUI<CameraModel: Camera>: PlatformView {
                 RecordingTimeView(time: camera.captureActivity.currentTime)
                     .offset(y: isRegularSize ? 20 : 0)
             case .dual:
-                EmptyView()
+                // The dual mode shows the recording time too.
+                RecordingTimeView(time: camera.captureActivity.currentTime)
+                    .offset(y: isRegularSize ? 20 : 0)
             }
         }
         .overlay {

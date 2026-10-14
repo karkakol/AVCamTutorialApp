@@ -109,6 +109,8 @@ protocol PreviewTarget {
 protocol DualPreviewSource: Sendable {
     // Connects the preview views for the back camera and the front camera to this source.
     @MainActor func connect(back: PreviewTarget, front: PreviewTarget)
+    // Tells the source which camera the small picture shows, so that a recording shows the same layout.
+    @MainActor func setSmallPicture(_ position: AVCaptureDevice.Position)
 }
 
 /// The app's default `DualPreviewSource` implementation.
@@ -126,6 +128,11 @@ struct DefaultDualPreviewSource: DualPreviewSource {
         let frontLayer = front.previewLayer
         // The capture service connects the layers on its own queue.
         Task { await captureService.attachDualPreview(back: backLayer, front: frontLayer) }
+    }
+    
+    @MainActor
+    func setSmallPicture(_ position: AVCaptureDevice.Position) {
+        Task { await captureService.setDualSmallPicture(position) }
     }
 }
 
