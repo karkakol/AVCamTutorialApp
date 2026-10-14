@@ -37,3 +37,9 @@ struct ThumbnailButton<CameraModel: Camera>: View {
         }
     }
 }
+
+#Preview {
+    PreviewBackground {
+        ThumbnailButton(camera: PreviewCameraModel())
+    }
+}
