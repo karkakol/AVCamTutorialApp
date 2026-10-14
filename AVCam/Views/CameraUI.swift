@@ -24,5 +24,7 @@ struct CameraUI<CameraModel: Camera>: View {
 }
 
 #Preview {
-    CameraUI(camera: PreviewCameraModel())
+    PreviewBackground {
+        CameraUI(camera: PreviewCameraModel())
+    }
 }

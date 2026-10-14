@@ -27,7 +27,9 @@ struct MainToolbar<CameraModel: Camera>: View {
 }
 
 #Preview {
-    Group {
-        MainToolbar(camera: PreviewCameraModel())
+    PreviewBackground {
+        Group {
+            MainToolbar(camera: PreviewCameraModel())
+        }
     }
 }

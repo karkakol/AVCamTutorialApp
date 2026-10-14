@@ -25,3 +25,9 @@ struct SwitchCameraButton<CameraModel: Camera>: View {
         .allowsHitTesting(!camera.isSwitchingVideoDevices)
     }
 }
+
+#Preview {
+    PreviewBackground {
+        SwitchCameraButton(camera: PreviewCameraModel())
+    }
+}
