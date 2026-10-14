@@ -76,6 +76,7 @@
 				Model/Intent/AVCamCaptureIntent.swift,
 				Model/MediaLibrary.swift,
 				"Preview Content/PreviewCameraModel.swift",
+				"Preview Content/PreviewBackground.swift",
 				Support/CaptureExtensions.swift,
 				Support/FoundationExtensions.swift,
 				Support/ViewExtensions.swift,
