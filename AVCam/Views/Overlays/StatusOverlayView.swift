@@ -53,9 +53,13 @@ struct StatusOverlayView: View {
 }
 
 #Preview("Failed") {
-    CameraView(camera: PreviewCameraModel(status: .failed))
+    PreviewBackground {
+        CameraView(camera: PreviewCameraModel(status: .failed))
+    }
 }
 
 #Preview("Unauthorized") {
-    CameraView(camera: PreviewCameraModel(status: .unauthorized))
+    PreviewBackground {
+        CameraView(camera: PreviewCameraModel(status: .unauthorized))
+    }
 }
