@@ -18,6 +18,7 @@ struct AVCamApp: App {
             CameraView(camera: camera)
                 .statusBarHidden(true)
                 .task {
+                    
                     await camera.start()
                 }
         }

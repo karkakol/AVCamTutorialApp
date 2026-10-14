@@ -42,9 +42,65 @@ actor CaptureService {
         captureSession.startRunning()
     }
     
+    private func getAllCaptureDevices() -> [AVCaptureDevice] {
+        var deviceTypes: [AVCaptureDevice.DeviceType] = [
+            // Physical cameras
+            .builtInWideAngleCamera,
+            .builtInUltraWideCamera,
+            .builtInTelephotoCamera,
+            
+            // Virtual cameras
+            .builtInDualCamera,
+            .builtInDualWideCamera,
+            .builtInTripleCamera,
+            
+            // Micriphone
+            .microphone
+        ]
+        
+        if #available(iOS 15.4, *) {
+            deviceTypes.append(.builtInLiDARDepthCamera)
+        }
+        
+        if #available(iOS 17.0, *) {
+            deviceTypes.append(.continuityCamera)
+        }
+        
+        #if os(iOS)
+        if #available(iOS 17.0, *){
+            deviceTypes.append(.external)
+        }
+        #elseif os(macOS)
+        deviceTypes.append(.externalUnknown)
+        #endif
+        
+        let discoverySession = AVCaptureDevice.DiscoverySession(deviceTypes: deviceTypes, mediaType: nil, position: .unspecified)
+        
+        return discoverySession.devices
+    }
+    
+    private func listAllCaptureDevices() {
+        print(String(repeating: "=", count: 50))
+        print("All camera devices: ")
+        for device in getAllCaptureDevices(){
+            print()
+            if device.isVirtualDevice {
+                print("\(device.localizedName) is Virtual")
+                print("Underlying physical cameras: ", device.constituentDevices)
+            } else {
+                print("\(device.localizedName) is Physical")
+            }
+            print("\(device.modelID) model ID")
+            print("\(device.uniqueID) unique ID")
+
+        }
+        print(String(repeating: "=", count: 50))
+    }
+    
     private func setUpSessino() throws {
+        listAllCaptureDevices()
         do {
-            guard let defaultCamera = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back) else {
+            guard let defaultCamera = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .front) else {
                 throw CameraError.videoDeviceUnavailable
             }
             
