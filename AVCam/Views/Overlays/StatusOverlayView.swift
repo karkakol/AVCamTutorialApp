@@ -57,7 +57,9 @@ struct StatusOverlayView: View {
 }
 
 #Preview("Interrupted") {
-    CameraView(camera: PreviewCameraModel(status: .interrupted))
+    PreviewBackground {
+        CameraView(camera: PreviewCameraModel(status: .interrupted))
+    }
 }
 
 #Preview("Failed") {
