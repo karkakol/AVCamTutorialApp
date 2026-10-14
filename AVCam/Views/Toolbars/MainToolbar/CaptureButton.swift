@@ -32,7 +32,9 @@ struct CaptureButton<CameraModel: Camera>: View {
 }
 
 #Preview("Photo") {
-    CaptureButton(camera: PreviewCameraModel())
+    PreviewBackground {
+        CaptureButton(camera: PreviewCameraModel())
+    }
 }
 
 private struct PhotoCaptureButton: View {
