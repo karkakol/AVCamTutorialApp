@@ -56,3 +56,9 @@ struct FeaturesToolbar<CameraModel: Camera>: PlatformView {
         }
     }
 }
+
+#Preview {
+    PreviewBackground {
+        FeaturesToolbar(camera: PreviewCameraModel())
+    }
+}
