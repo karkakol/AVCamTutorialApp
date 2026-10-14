@@ -465,10 +465,14 @@ actor CaptureService {
         do {
             // A device without a microphone records a movie without sound.
             let microphone = try? deviceLookup.defaultMic
+            // The session is configured one time, so the recorder exists after the first call only.
+            let isFirstConfiguration = !multiCamCapture.isConfigured
             try multiCamCapture.configure(backCamera: backCamera, frontCamera: frontCamera, microphone: microphone,
                                           backPreview: layers.back, frontPreview: layers.front)
-            // Report the recording state of the dual recorder like the other outputs.
-            observeDualRecorder()
+            // Report the recording state of the dual recorder like the other outputs. Observe it one time only.
+            if isFirstConfiguration {
+                observeDualRecorder()
+            }
         } catch {
             logger.error("Unable to configure the multi-camera session: \(error)")
             return
