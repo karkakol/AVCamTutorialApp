@@ -16,6 +16,11 @@ actor CaptureService {
     private var activeVideoInput: AVCaptureDeviceInput?
     
     private let deviceLookup = DeviceLookup()
+    
+    private let systemPreferredCamera = SystemPreferredCameraObserver()
+    
+    private var rotationCoordinator: AVCaptureDevice.RotationCoordinator!
+    private var rotationObservers = [AnyObject]()
 
     private let sessionQueue = DispatchSerialQueue(
         label: "\(Bundle.main.bundleIdentifier).sessionQueue"
@@ -54,6 +59,8 @@ actor CaptureService {
             let defaultCamera = try deviceLookup.defaultCamera
 
             activeVideoInput = try addInput(for: defaultCamera)
+            monitorSystemPreferedCamera()
+            createRotationCoordinator(for: defaultCamera)
         } catch {
             throw CameraError.setupFailed
         }
@@ -101,9 +108,52 @@ actor CaptureService {
         captureSession.removeInput(currentInput)
         
         do {
-           activeVideoInput = try addInput(for: device)
+            activeVideoInput = try addInput(for: device)
+            createRotationCoordinator(for: device)
         } catch {
             captureSession.addInput(currentInput)
+        }
+    }
+    
+    private func monitorSystemPreferedCamera() {
+        Task {
+            for await camera in systemPreferredCamera.changes {
+                if let camera, currentDevice != camera {
+                    changeCaptureDevice(to: camera)
+                }
+                
+            }
+        }
+    }
+    
+    private var videoPreviewLevel: AVCaptureVideoPreviewLayer {
+        guard let previewLayer = captureSession.connections.compactMap({ $0.videoPreviewLayer }).first else {
+            fatalError("The app is misconfigured. The capture session should have a connection to a preview layer.")
+        }
+        return previewLayer
+    }
+    
+    private func createRotationCoordinator(for device: AVCaptureDevice){
+        rotationCoordinator = AVCaptureDevice.RotationCoordinator(device: device, previewLayer: videoPreviewLevel)
+        
+        updatePreviewRotation(rotationCoordinator.videoRotationAngleForHorizonLevelPreview)
+        
+        rotationObservers.removeAll()
+        
+        rotationObservers.append(
+            rotationCoordinator.observe(\.videoRotationAngleForHorizonLevelPreview, options: .new) { [weak self] _, change in
+                guard let self, let angle = change.newValue else { return }
+                
+                Task { await self.updatePreviewRotation(angle) }
+            }
+        )
+        
+    }
+    
+    private func updatePreviewRotation(_ angle: CGFloat){
+        let connection = videoPreviewLevel.connection
+        Task{ @MainActor in
+            connection?.videoRotationAngle = angle
         }
     }
 
