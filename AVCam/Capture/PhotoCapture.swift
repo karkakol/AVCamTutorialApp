@@ -24,6 +24,18 @@ final class PhotoCapture: OutputService {
     // An internal alias for the output.
     private var photoOutput: AVCapturePhotoOutput { output }
     
+    /// A value that indicates whether the photo output can accept a new capture request.
+    @Published private(set) var captureReadiness = CaptureReadiness.sessionNotRunning
+    
+    // An object that tracks the photo output's readiness and notifies the app on the main queue.
+    private lazy var readinessCoordinator = AVCapturePhotoOutputReadinessCoordinator(photoOutput: photoOutput)
+    
+    // The coordinator's delegate. The coordinator holds a weak reference, so this object keeps it alive.
+    private let readinessObserver = ReadinessObserver()
+    
+    // The task that forwards readiness changes to `captureReadiness`.
+    private var readinessTask: Task<Void, Never>?
+    
     // The current capabilities available.
     private(set) var capabilities: CaptureCapabilities = .unknown
     
@@ -42,6 +54,9 @@ final class PhotoCapture: OutputService {
             
             let delegate = PhotoCaptureDelegate(continuation: continuation)
             monitorProgress(of: delegate)
+            
+            // Tell the coordinator about the request before the capture starts.
+            readinessCoordinator.startTrackingCaptureRequest(using: photoSettings)
             
             // Capture a new photo with the specified settings.
             photoOutput.capturePhoto(with: photoSettings, delegate: delegate)
@@ -140,6 +155,19 @@ final class PhotoCapture: OutputService {
         }
     }
     
+    /// Monitors the readiness values that the coordinator's delegate produces.
+    ///
+    /// The delegate reports on the main queue. The stream moves each value to the capture service's actor.
+    private func monitorReadiness(isolation: isolated (any Actor)? = #isolation) {
+        readinessTask = Task {
+            _ = isolation
+            for await readiness in readinessObserver.readinessStream {
+                logger.debug("Capture readiness changed to \(String(describing: readiness))")
+                captureReadiness = readiness
+            }
+        }
+    }
+    
     // MARK: - Update the photo output configuration
     
     /// Reconfigures the photo output and updates the output service's capabilities accordingly.
@@ -151,11 +179,22 @@ final class PhotoCapture: OutputService {
         photoOutput.maxPhotoDimensions = device.activeFormat.supportedMaxPhotoDimensions.last ?? .zero
         photoOutput.isLivePhotoCaptureEnabled = photoOutput.isLivePhotoCaptureSupported
         photoOutput.maxPhotoQualityPrioritization = .quality
+        photoOutput.isZeroShutterLagEnabled = photoOutput.isZeroShutterLagSupported
         photoOutput.isResponsiveCaptureEnabled = photoOutput.isResponsiveCaptureSupported
         photoOutput.isFastCapturePrioritizationEnabled = photoOutput.isFastCapturePrioritizationSupported
         photoOutput.isAutoDeferredPhotoDeliveryEnabled = photoOutput.isAutoDeferredPhotoDeliverySupported
         // Enabling Apple ProRAW adds its formats to the available RAW formats.
         photoOutput.isAppleProRAWEnabled = photoOutput.isAppleProRAWSupported
+        // Log the state of the capture switches so a device test can read them.
+        let output = photoOutput
+        logger.debug("Zero shutter lag (supported/enabled): \(output.isZeroShutterLagSupported)/\(output.isZeroShutterLagEnabled)")
+        logger.debug("Responsive capture (supported/enabled): \(output.isResponsiveCaptureSupported)/\(output.isResponsiveCaptureEnabled)")
+        logger.debug("Fast capture prioritization (supported/enabled): \(output.isFastCapturePrioritizationSupported)/\(output.isFastCapturePrioritizationEnabled)")
+        // Start tracking readiness once. Setting the delegate delivers the first value.
+        if readinessTask == nil {
+            readinessCoordinator.delegate = readinessObserver
+            monitorReadiness()
+        }
         updateCapabilities(for: device)
     }
     
@@ -163,6 +202,44 @@ final class PhotoCapture: OutputService {
         capabilities = CaptureCapabilities(isLivePhotoCaptureSupported: photoOutput.isLivePhotoCaptureSupported,
                                            isAppleProRAWSupported: rawPixelFormat(for: .appleProRAW) != nil,
                                            isBayerRAWSupported: rawPixelFormat(for: .bayerRAW) != nil)
+    }
+}
+
+// MARK: - A delegate to observe the photo output's readiness.
+
+/// An object that adopts the readiness coordinator's delegate protocol and turns its callbacks into a stream.
+///
+/// The coordinator calls the delegate on the main queue, so the object yields each value into an
+/// asynchronous stream that the capture service's actor consumes.
+private class ReadinessObserver: NSObject, AVCapturePhotoOutputReadinessCoordinatorDelegate {
+    
+    /// A stream of readiness values that the photo output reports.
+    let readinessStream: AsyncStream<CaptureReadiness>
+    private let readinessContinuation: AsyncStream<CaptureReadiness>.Continuation
+    
+    override init() {
+        let (readinessStream, readinessContinuation) = AsyncStream.makeStream(of: CaptureReadiness.self)
+        self.readinessStream = readinessStream
+        self.readinessContinuation = readinessContinuation
+        super.init()
+    }
+    
+    func readinessCoordinator(_ coordinator: AVCapturePhotoOutputReadinessCoordinator,
+                              captureReadinessDidChange captureReadiness: AVCapturePhotoOutput.CaptureReadiness) {
+        readinessContinuation.yield(CaptureReadiness(captureReadiness))
+    }
+}
+
+private extension CaptureReadiness {
+    /// Creates a readiness value from the AVFoundation value.
+    init(_ readiness: AVCapturePhotoOutput.CaptureReadiness) {
+        switch readiness {
+        case .ready: self = .ready
+        case .notReadyMomentarily: self = .notReadyMomentarily
+        case .notReadyWaitingForCapture: self = .notReadyWaitingForCapture
+        case .notReadyWaitingForProcessing: self = .notReadyWaitingForProcessing
+        default: self = .sessionNotRunning
+        }
     }
 }
 

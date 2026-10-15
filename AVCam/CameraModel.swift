@@ -25,6 +25,9 @@ final class CameraModel: Camera {
     /// The current state of photo capture.
     private(set) var captureActivity = CaptureActivity.idle
     
+    /// A value that indicates whether the photo output can accept a new capture request.
+    private(set) var captureReadiness = CaptureReadiness.sessionNotRunning
+    
     /// A Boolean value that indicates whether the app is currently switching video devices.
     private(set) var isSwitchingVideoDevices = false
     
@@ -82,12 +85,14 @@ final class CameraModel: Camera {
     
     /// Captures a photo and writes it to the user's Photos library.
     func capturePhoto() async {
+        logger.debug("Capture requested. Readiness: \(String(describing: self.captureReadiness))")
         do {
             let photoFeatures = PhotoFeatures(isLivePhotoEnabled: isLivePhotoEnabled, qualityPrioritization: qualityPrioritization,
                                          rawFormat: rawFormat)
             let photo = try await captureService.capturePhoto(with: photoFeatures)
             try await mediaLibrary.save(photo: photo)
         } catch {
+            logger.error("Photo capture failed. \(error)")
             self.error = error
         }
     }
@@ -137,6 +142,13 @@ final class CameraModel: Camera {
                     || rawFormat == .bayerRAW && !capabilities.isBayerRAWSupported {
                     rawFormat = .off
                 }
+            }
+        }
+        
+        Task {
+            // Await new capture readiness values from the capture service.
+            for await readiness in await captureService.$captureReadiness.values {
+                captureReadiness = readiness
             }
         }
         

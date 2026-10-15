@@ -15,6 +15,8 @@ actor CaptureService {
     
     /// A value that indicates whether the capture service is idle or capturing a photo or movie.
     @Published private(set) var captureActivity: CaptureActivity = .idle
+    /// A value that indicates whether the photo output can accept a new capture request.
+    @Published private(set) var captureReadiness = CaptureReadiness.sessionNotRunning
     /// A value that indicates the current capture capabilities of the service.
     @Published private(set) var captureCapabilities = CaptureCapabilities.unknown
     
@@ -351,5 +353,7 @@ actor CaptureService {
     private func observeOutputServices() {
         photoCapture.$captureActivity
             .assign(to: &$captureActivity)
+        photoCapture.$captureReadiness
+            .assign(to: &$captureReadiness)
     }
 }

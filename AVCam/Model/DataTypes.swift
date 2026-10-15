@@ -44,6 +44,29 @@ enum CaptureActivity {
     }
 }
 
+/// An enumeration that describes whether the photo output can accept a new capture request.
+///
+/// This type mirrors `AVCapturePhotoOutput.CaptureReadiness` so the views don't depend on AVFoundation.
+enum CaptureReadiness {
+    /// A status that indicates the photo output can service a new request.
+    case ready
+    /// A status that indicates the output isn't ready, but may be ready again shortly.
+    case notReadyMomentarily
+    /// A status that indicates the output is busy capturing.
+    case notReadyWaitingForCapture
+    /// A status that indicates the output is busy processing.
+    case notReadyWaitingForProcessing
+    /// A status that indicates the capture session isn't running.
+    case sessionNotRunning
+    
+    /// A Boolean value that indicates whether the UI should disable the photo button.
+    ///
+    /// The button stays available for `notReadyMomentarily`. The state is too short to justify a visible change.
+    var isCaptureButtonDisabled: Bool {
+        self == .notReadyWaitingForCapture || self == .notReadyWaitingForProcessing
+    }
+}
+
 /// A structure that represents a captured photo.
 struct Photo: Sendable {
     let data: Data

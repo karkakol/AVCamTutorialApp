@@ -20,6 +20,9 @@ protocol Camera: AnyObject, SendableMetatype {
     /// The camera's current activity state, which can be photo capture or idle.
     var captureActivity: CaptureActivity { get }
 
+    /// A value that indicates whether the photo output can accept a new capture request.
+    var captureReadiness: CaptureReadiness { get }
+
     /// The source of video content for a camera preview.
     var previewSource: PreviewSource { get }
     

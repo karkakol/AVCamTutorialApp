@@ -23,7 +23,7 @@ struct CaptureButton<CameraModel: Camera>: View {
     
     @ViewBuilder
     var captureButton: some View {
-        PhotoCaptureButton {
+        PhotoCaptureButton(readiness: camera.captureReadiness) {
             Task {
                 await camera.capturePhoto()
             }
@@ -37,11 +37,21 @@ struct CaptureButton<CameraModel: Camera>: View {
     }
 }
 
+#Preview("Waiting for processing") {
+    PreviewBackground {
+        let camera = PreviewCameraModel()
+        let _ = camera.captureReadiness = .notReadyWaitingForProcessing
+        CaptureButton(camera: camera)
+    }
+}
+
 private struct PhotoCaptureButton: View {
+    private let readiness: CaptureReadiness
     private let action: () -> Void
     private let lineWidth = CGFloat(4.0)
     
-    init(action: @escaping () -> Void) {
+    init(readiness: CaptureReadiness, action: @escaping () -> Void) {
+        self.readiness = readiness
         self.action = action
     }
     
@@ -58,7 +68,17 @@ private struct PhotoCaptureButton: View {
                     .fill(.white)
             }
             .buttonStyle(PhotoButtonStyle())
+            // Disable the button while the photo output is busy capturing or processing.
+            // The button stays enabled when the output is momentarily not ready, because the state is short.
+            .disabled(readiness.isCaptureButtonDisabled)
+            if readiness == .notReadyWaitingForProcessing {
+                // Show a progress indicator while the photo output processes a capture.
+                ProgressView()
+                    .tint(.black)
+            }
         }
+        // Dim the button in the two waiting states.
+        .opacity(readiness.isCaptureButtonDisabled ? 0.5 : 1.0)
     }
     
     struct PhotoButtonStyle: ButtonStyle {
