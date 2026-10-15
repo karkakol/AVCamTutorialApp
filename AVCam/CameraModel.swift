@@ -12,6 +12,8 @@ import SwiftUI
 final class CameraModel: Camera {
     private(set) var status = CameraStatus.unknown
     
+    private(set) var isSwitchingVideoDevices: Bool = false
+    
     var previewSource: PreviewSource { captureService.previewSource}
     
     private let captureService = CaptureService()
@@ -33,5 +35,11 @@ final class CameraModel: Camera {
             logger.error("Failed to start capture service. \(error)")
             status = .failed
         }
+    }
+    
+    func switchVideoDevices() async {
+        isSwitchingVideoDevices = true
+        defer { isSwitchingVideoDevices = false}
+        await captureService.selectNextVideoDevice()
     }
 }

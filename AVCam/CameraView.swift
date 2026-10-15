@@ -13,8 +13,10 @@ struct CameraView<CameraModel: Camera>: View {
     @State var camera: CameraModel
     var body: some View {
         ZStack {
-            CameraPreview(source: camera.previewSource)
-            StatusOverlayView(status: camera.status)
+            PreviewContainer(camera: camera) {
+                CameraPreview(source: camera.previewSource)
+            }
+            CameraUI(camera: camera)
         }
     }
 }

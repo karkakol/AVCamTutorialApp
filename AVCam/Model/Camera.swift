@@ -12,4 +12,7 @@ protocol Camera: AnyObject, SendableMetatype {
     var status: CameraStatus { get }
     var previewSource: PreviewSource { get }
     func start() async
+    
+    var isSwitchingVideoDevices: Bool { get }
+    func switchVideoDevices() async
 }

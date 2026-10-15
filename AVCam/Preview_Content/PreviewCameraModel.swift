@@ -18,6 +18,8 @@ class PreviewCameraModel: Camera {
     
     private(set) var status = CameraStatus.unknown
     
+    private(set) var isSwitchingVideoDevices = false
+    
     init(status: CameraStatus = CameraStatus.unknown) {
         self.status = status
     }
@@ -26,5 +28,9 @@ class PreviewCameraModel: Camera {
         if status == .unknown {
             status = .running
         }
+    }
+    
+    func switchVideoDevices() {
+        logger.debug("Device switching isn't implemented in PreviewCamera")
     }
 }
