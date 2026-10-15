@@ -13,6 +13,9 @@ class PreviewCameraModel: Camera {
     
     var isLivePhotoEnabled = true
     var qualityPrioritization = QualityPrioritization.quality
+    var rawFormat = RAWFormat.off
+    // Report both RAW formats as supported so the previews show the RAW control.
+    let captureCapabilities = CaptureCapabilities(isAppleProRAWSupported: true, isBayerRAWSupported: true)
     var shouldFlashScreen = false
     
     struct PreviewSourceStub: PreviewSource {

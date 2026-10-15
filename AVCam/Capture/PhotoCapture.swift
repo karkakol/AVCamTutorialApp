@@ -60,6 +60,16 @@ final class PhotoCapture: OutputService {
             photoSettings = AVCapturePhotoSettings(format: [AVVideoCodecKey: AVVideoCodecType.hevc])
         }
         
+        /// Request a RAW photo along with the processed photo when the device supports the chosen format.
+        /// The capture then delivers two photos, so the processed format needs a codec of its own.
+        let rawType = rawPixelFormat(for: features.rawFormat)
+        if let rawType {
+            let codec: AVVideoCodecType = photoOutput.availablePhotoCodecTypes.contains(.hevc) ? .hevc : .jpeg
+            photoSettings = AVCapturePhotoSettings(rawPixelFormatType: rawType,
+                                                   processedFormat: [AVVideoCodecKey: codec])
+            logger.debug("Capturing with RAW format: \(features.rawFormat.description)")
+        }
+        
         /// Set the format of the preview image to capture. The `photoSettings` object returns the available
         /// preview format types in order of compatibility with the primary image.
         if let previewPhotoPixelFormatType = photoSettings.availablePreviewPhotoPixelFormatTypes.first {
@@ -72,14 +82,34 @@ final class PhotoCapture: OutputService {
         photoSettings.maxPhotoDimensions = photoOutput.maxPhotoDimensions
         
         // Set the movie URL if the photo output supports Live Photo capture.
-        photoSettings.livePhotoMovieFileURL = features.isLivePhotoEnabled ? URL.movieFileURL : nil
+        // An Apple ProRAW capture can't include a Live Photo movie.
+        let excludesLivePhoto = rawType != nil && features.rawFormat == .appleProRAW
+        photoSettings.livePhotoMovieFileURL = features.isLivePhotoEnabled && !excludesLivePhoto ? URL.movieFileURL : nil
         
         // Set the priority of speed versus quality during this capture.
         if let prioritization = AVCapturePhotoOutput.QualityPrioritization(rawValue: features.qualityPrioritization.rawValue) {
             photoSettings.photoQualityPrioritization = prioritization
         }
         
+        // A Bayer RAW capture throws an exception with any prioritization other than speed.
+        if rawType != nil && features.rawFormat == .bayerRAW {
+            photoSettings.photoQualityPrioritization = .speed
+        }
+        
         return photoSettings
+    }
+    
+    /// Returns the first RAW pixel format of the requested kind that the photo output offers.
+    private func rawPixelFormat(for rawFormat: RAWFormat) -> OSType? {
+        let formats = photoOutput.availableRawPhotoPixelFormatTypes
+        switch rawFormat {
+        case .off:
+            return nil
+        case .appleProRAW:
+            return formats.first { AVCapturePhotoOutput.isAppleProRAWPixelFormat($0) }
+        case .bayerRAW:
+            return formats.first { AVCapturePhotoOutput.isBayerRAWPixelFormat($0) }
+        }
     }
     
     /// Monitors the progress of a photo capture delegate.
@@ -124,11 +154,15 @@ final class PhotoCapture: OutputService {
         photoOutput.isResponsiveCaptureEnabled = photoOutput.isResponsiveCaptureSupported
         photoOutput.isFastCapturePrioritizationEnabled = photoOutput.isFastCapturePrioritizationSupported
         photoOutput.isAutoDeferredPhotoDeliveryEnabled = photoOutput.isAutoDeferredPhotoDeliverySupported
+        // Enabling Apple ProRAW adds its formats to the available RAW formats.
+        photoOutput.isAppleProRAWEnabled = photoOutput.isAppleProRAWSupported
         updateCapabilities(for: device)
     }
     
     private func updateCapabilities(for device: AVCaptureDevice) {
-        capabilities = CaptureCapabilities(isLivePhotoCaptureSupported: photoOutput.isLivePhotoCaptureSupported)
+        capabilities = CaptureCapabilities(isLivePhotoCaptureSupported: photoOutput.isLivePhotoCaptureSupported,
+                                           isAppleProRAWSupported: rawPixelFormat(for: .appleProRAW) != nil,
+                                           isBayerRAWSupported: rawPixelFormat(for: .bayerRAW) != nil)
     }
 }
 
@@ -147,6 +181,7 @@ private class PhotoCaptureDelegate: NSObject, AVCapturePhotoCaptureDelegate {
     private var isProxyPhoto = false
     
     private var photoData: Data?
+    private var rawData: Data?
     private var livePhotoMovieURL: URL?
     
     /// A stream of capture activity values that indicate the current state of progress.
@@ -200,7 +235,14 @@ private class PhotoCaptureDelegate: NSObject, AVCapturePhotoCaptureDelegate {
             logger.debug("Error capturing photo: \(String(describing: error))")
             return
         }
-        photoData = photo.fileDataRepresentation()
+        // A RAW capture calls this method twice: once for the DNG and once for the processed photo.
+        if photo.isRawPhoto {
+            let data = photo.fileDataRepresentation()
+            logger.debug("Captured RAW photo, \(data?.count ?? 0) bytes")
+            rawData = data
+        } else {
+            photoData = photo.fileDataRepresentation()
+        }
     }
     
     func photoOutput(_ output: AVCapturePhotoOutput, didFinishCaptureFor resolvedSettings: AVCaptureResolvedPhotoSettings, error: Error?) {
@@ -223,7 +265,7 @@ private class PhotoCaptureDelegate: NSObject, AVCapturePhotoCaptureDelegate {
         }
         
         /// Create a photo object to save to the `MediaLibrary`.
-        let photo = Photo(data: photoData, isProxy: isProxyPhoto, livePhotoMovieURL: livePhotoMovieURL)
+        let photo = Photo(data: photoData, isProxy: isProxyPhoto, livePhotoMovieURL: livePhotoMovieURL, rawData: rawData)
         // Resume the continuation by returning the captured photo.
         continuation.resume(returning: photo)
     }

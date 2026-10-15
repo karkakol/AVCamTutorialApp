@@ -83,7 +83,8 @@ final class CameraModel: Camera {
     /// Captures a photo and writes it to the user's Photos library.
     func capturePhoto() async {
         do {
-            let photoFeatures = PhotoFeatures(isLivePhotoEnabled: isLivePhotoEnabled, qualityPrioritization: qualityPrioritization)
+            let photoFeatures = PhotoFeatures(isLivePhotoEnabled: isLivePhotoEnabled, qualityPrioritization: qualityPrioritization,
+                                         rawFormat: rawFormat)
             let photo = try await captureService.capturePhoto(with: photoFeatures)
             try await mediaLibrary.save(photo: photo)
         } catch {
@@ -96,6 +97,12 @@ final class CameraModel: Camera {
     
     /// A value that indicates how to balance the photo capture quality versus speed.
     var qualityPrioritization = QualityPrioritization.quality
+    
+    /// A value that indicates which RAW format to capture along with the processed photo.
+    var rawFormat = RAWFormat.off
+    
+    /// The capture features that the current camera configuration supports.
+    private(set) var captureCapabilities = CaptureCapabilities.unknown
     
     /// Performs a focus and expose operation at the specified screen point.
     func focusAndExpose(at point: CGPoint) async {
@@ -118,6 +125,18 @@ final class CameraModel: Camera {
             // Await new thumbnails that the media library generates when saving a file.
             for await thumbnail in mediaLibrary.thumbnails.compactMap({ $0 }) {
                 self.thumbnail = thumbnail
+            }
+        }
+        
+        Task {
+            // Await new capabilities from the capture service.
+            for await capabilities in await captureService.$captureCapabilities.values {
+                captureCapabilities = capabilities
+                // Fall back to no RAW when the new camera doesn't support the chosen format.
+                if rawFormat == .appleProRAW && !capabilities.isAppleProRAWSupported
+                    || rawFormat == .bayerRAW && !capabilities.isBayerRAWSupported {
+                    rawFormat = .off
+                }
             }
         }
         

@@ -49,11 +49,14 @@ struct Photo: Sendable {
     let data: Data
     let isProxy: Bool
     let livePhotoMovieURL: URL?
+    /// The DNG data of a RAW capture, or `nil` when the capture has no RAW photo.
+    let rawData: Data?
 }
 
 struct PhotoFeatures {
     let isLivePhotoEnabled: Bool
     let qualityPrioritization: QualityPrioritization
+    var rawFormat = RAWFormat.off
 }
 
 /// A structure that represents the capture capabilities of `CaptureService` in
@@ -61,9 +64,15 @@ struct PhotoFeatures {
 struct CaptureCapabilities {
 
     let isLivePhotoCaptureSupported: Bool
+    let isAppleProRAWSupported: Bool
+    let isBayerRAWSupported: Bool
     
-    init(isLivePhotoCaptureSupported: Bool = false) {
+    init(isLivePhotoCaptureSupported: Bool = false,
+         isAppleProRAWSupported: Bool = false,
+         isBayerRAWSupported: Bool = false) {
         self.isLivePhotoCaptureSupported = isLivePhotoCaptureSupported
+        self.isAppleProRAWSupported = isAppleProRAWSupported
+        self.isBayerRAWSupported = isBayerRAWSupported
     }
     
     static let unknown = CaptureCapabilities()
@@ -82,6 +91,27 @@ enum QualityPrioritization: Int, Identifiable, CaseIterable, CustomStringConvert
             return "Balanced"
         case .quality:
             return "Quality"
+        }
+    }
+}
+
+/// An enumeration that describes the RAW format to capture along with the processed photo.
+enum RAWFormat: Int, Identifiable, CaseIterable, CustomStringConvertible, Codable {
+    var id: Self { self }
+    /// No RAW photo.
+    case off
+    /// A linear DNG that the system partially processes.
+    case appleProRAW
+    /// A DNG with the unprocessed sensor data.
+    case bayerRAW
+    var description: String {
+        switch self {
+        case .off:
+            return "Off"
+        case .appleProRAW:
+            return "Apple ProRAW"
+        case .bayerRAW:
+            return "RAW"
         }
     }
 }

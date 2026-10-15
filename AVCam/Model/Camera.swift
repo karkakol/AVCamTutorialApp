@@ -41,6 +41,12 @@ protocol Camera: AnyObject, SendableMetatype {
     /// A value that indicates how to balance the photo capture quality versus speed.
     var qualityPrioritization: QualityPrioritization { get set }
     
+    /// A value that indicates which RAW format to capture along with the processed photo.
+    var rawFormat: RAWFormat { get set }
+    
+    /// The capture features that the current camera configuration supports.
+    var captureCapabilities: CaptureCapabilities { get }
+    
     /// Captures a photo and writes it to the user's photo library.
     func capturePhoto() async
     

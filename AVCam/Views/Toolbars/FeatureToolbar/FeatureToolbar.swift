@@ -20,6 +20,7 @@ struct FeaturesToolbar<CameraModel: Camera>: PlatformView {
             Spacer()
             livePhotoButton
             prioritizePicker
+            rawMenu
         }
         .buttonStyle(DefaultButtonStyle(size: isRegularSize ? .large : .small))
         .padding([.leading, .trailing])
@@ -52,6 +53,34 @@ struct FeaturesToolbar<CameraModel: Camera>: PlatformView {
                 Image(systemName: "dial.medium")
             case .quality:
                 Image(systemName: "dial.high")
+            }
+        }
+    }
+    
+    /// The RAW formats that the current camera supports. A person can always turn RAW off.
+    private var supportedRAWFormats: [RAWFormat] {
+        RAWFormat.allCases.filter {
+            switch $0 {
+            case .off: true
+            case .appleProRAW: camera.captureCapabilities.isAppleProRAWSupported
+            case .bayerRAW: camera.captureCapabilities.isBayerRAWSupported
+            }
+        }
+    }
+    
+    // A menu to choose the RAW format. The menu is hidden when the camera supports no RAW format.
+    @ViewBuilder
+    var rawMenu: some View {
+        if supportedRAWFormats.count > 1 {
+            Menu {
+                Picker("RAW Format", selection: $camera.rawFormat) {
+                    ForEach(supportedRAWFormats) {
+                        Text($0.description)
+                            .font(.body.weight(.bold))
+                    }
+                }
+            } label: {
+                Image(systemName: camera.rawFormat == .off ? "r.square" : "r.square.fill")
             }
         }
     }

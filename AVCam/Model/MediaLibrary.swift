@@ -57,8 +57,14 @@ actor MediaLibrary {
             
             // Save primary photo.
             let options = PHAssetResourceCreationOptions()
-            // Specify the appropriate resource type for the photo.
-            creationRequest.addResource(with: photo.isProxy ? .photoProxy : .photo, data: photo.data, options: options)
+            if let rawData = photo.rawData {
+                // Save the DNG as the primary photo and the processed photo as its alternate.
+                creationRequest.addResource(with: .photo, data: rawData, options: options)
+                creationRequest.addResource(with: .alternatePhoto, data: photo.data, options: options)
+            } else {
+                // Specify the appropriate resource type for the photo.
+                creationRequest.addResource(with: photo.isProxy ? .photoProxy : .photo, data: photo.data, options: options)
+            }
             creationRequest.location = location
             
             // Save Live Photo data.
